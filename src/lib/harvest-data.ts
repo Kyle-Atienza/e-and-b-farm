@@ -6,6 +6,13 @@ export type Harvest = {
   date: string;
 };
 
+export type HarvestRecordDraft = {
+  crop: string;
+  quantity: number;
+  recordedAt: string;
+  recordedBy: string;
+};
+
 export const CROPS = ["Oyster Mushroom"];
 
 export const INITIAL_HARVESTS: Harvest[] = [
