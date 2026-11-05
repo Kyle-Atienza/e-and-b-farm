@@ -1,3 +1,5 @@
+import { Constants, type Database } from "@/lib/supabase/database.types";
+
 export type Harvest = {
   id: number;
   crop: string;
@@ -7,11 +9,20 @@ export type Harvest = {
 };
 
 export type HarvestRecordDraft = {
-  crop: string;
   quantity: number;
-  recordedAt: string;
-  recordedBy: string;
+  harvest_date: string;
+  harvest_period: HarvestPeriod;
+  recorded_by: string;
 };
+
+export type HarvestPeriod = Database["public"]["Enums"]["harvest_period"];
+
+export const HARVEST_PERIOD_OPTIONS = Constants.public.Enums.harvest_period.map(
+  (value) => ({
+    value,
+    label: value.charAt(0) + value.slice(1).toLowerCase(),
+  }),
+);
 
 export const CROPS = ["Oyster Mushroom"];
 

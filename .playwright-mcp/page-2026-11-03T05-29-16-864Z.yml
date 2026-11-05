@@ -1,0 +1,18 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "E and B Farm home" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - text: E&B
+        - heading "Oyster Mushrooms Record" [level=1] [ref=e8]
+      - generic [ref=e9]:
+        - button "Notifications" [ref=e11]
+        - 'link "Account: E and B" [ref=e12] [cursor=pointer]':
+          - /url: /login
+          - text: EB
+  - main [ref=e13]:
+    - button [ref=e14]:
+      - generic [ref=e18]: RecordHarvest
+    - button [ref=e19]:
+      - generic [ref=e25]: AddSales

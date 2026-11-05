@@ -1,20 +1,25 @@
-import { useState, type FormEvent } from "react";
-import {
-  CheckmarkCircle02Icon,
-  Delete02Icon,
-  MinusSignIcon,
-  PlusSignIcon,
-  UserIcon,
-} from "@hugeicons/core-free-icons";
+import { useEffect, useState, type FormEvent } from "react";
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
+import { RecordedByField } from "@/components/recorded-by-field";
+import { OptionItem } from "@/components/sales/option-item";
+import { SaleItem } from "@/components/sales/sale-item";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
-  SALE_PRESETS,
+  OYSTER_MUSHROOM_SALE_OPTIONS,
+  toSaleItemInsertValues,
   type SaleDraft,
   type SaleItemDraft,
 } from "@/lib/sales-data";
+import type { Tables } from "@/lib/supabase/database.types";
+
+type OysterMushroomProduct = Pick<
+  Tables<"products">,
+  "id" | "default_price" | "name" | "unit"
+>;
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-PH", {
@@ -22,49 +27,161 @@ const formatCurrency = (amount: number) =>
     currency: "PHP",
   }).format(amount);
 
+const formatQuantity = (quantity: number) =>
+  new Intl.NumberFormat("en-PH", {
+    maximumSignificantDigits: 4,
+  }).format(quantity);
+
 const currentTimestamp = () => new Date().toISOString();
 
 function SalesRoute() {
   const navigate = useNavigate();
+  const [product, setProduct] = useState<OysterMushroomProduct | null>(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(true);
+  const [productLoadError, setProductLoadError] = useState<string | null>(null);
+  const [productLoadAttempt, setProductLoadAttempt] = useState(0);
   const [items, setItems] = useState<SaleItemDraft[]>([]);
-  const [recordedBy, setRecordedBy] = useState("Elena Bautista");
+  const [recordedBy, setRecordedBy] = useState("");
+  const [recordedByError, setRecordedByError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [customMode, setCustomMode] = useState<"weight" | "amount" | null>(
     null,
   );
   const [customValue, setCustomValue] = useState("");
   const [receipt, setReceipt] = useState<SaleDraft | null>(null);
 
-  const total = items.reduce((sum, item) => sum + item.total, 0);
+  const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const options = product ? OYSTER_MUSHROOM_SALE_OPTIONS(product) : [];
 
-  function updateItemQuantity(id: string, quantity: number) {
-    if (!Number.isInteger(quantity) || quantity < 1) return;
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadProduct() {
+      setIsLoadingProduct(true);
+      setProductLoadError(null);
+      setProduct(null);
+
+      try {
+        const data = await toast.promise(
+          (async () => {
+            const { supabase } = await import("@/lib/supabase/client");
+            const { data: productData, error } = await supabase
+              .from("products")
+              .select("id, name, default_price, unit, is_active")
+              .eq("id", 1)
+              .maybeSingle();
+
+            if (error) throw error;
+            if (!productData)
+              throw new Error("Oyster Mushroom product (id: 1) not found.");
+            if (productData.is_active === false) {
+              throw new Error("Oyster Mushroom product (id: 1) is inactive.");
+            }
+            if (
+              !Number.isFinite(productData.default_price) ||
+              productData.default_price <= 0
+            ) {
+              throw new Error(
+                "Oyster Mushroom product has an invalid default price.",
+              );
+            }
+
+            return productData;
+          })(),
+          {
+            loading: {
+              title: "Loading sales options",
+              description: "Fetching Oyster Mushroom pricing.",
+              type: "loading",
+            },
+            success: {
+              title: "Sales options ready",
+              description: "Product pricing loaded successfully.",
+              type: "success",
+            },
+            error: {
+              title: "Unable to load sales options",
+              description: "Please try again.",
+              type: "error",
+            },
+          },
+        );
+
+        if (isCurrent) setProduct(data);
+      } catch (error) {
+        console.error("Failed to load Oyster Mushroom product:", error);
+        if (isCurrent) {
+          setProductLoadError(
+            "Unable to load Oyster Mushroom pricing. Please try again.",
+          );
+        }
+      } finally {
+        if (isCurrent) setIsLoadingProduct(false);
+      }
+    }
+
+    void loadProduct();
+    return () => {
+      isCurrent = false;
+    };
+  }, [productLoadAttempt]);
+
+  function updateItemCount(id: string, optionCount: number) {
+    if (!Number.isInteger(optionCount) || optionCount < 1) return;
     setItems((current) =>
       current.map((item) =>
         item.id === id
           ? {
               ...item,
-              quantity,
-              quantityLabel: String(quantity),
-              total: item.unitPrice * quantity,
+              optionCount,
+              optionCountLabel: String(optionCount),
+              subtotal: item.pricePerOption * optionCount,
             }
           : item,
       ),
     );
   }
 
-  function addPreset(preset: (typeof SALE_PRESETS)[number]) {
+  function handleQuantityChange(id: string, value: string) {
+    if (value === "") {
+      setItems((current) =>
+        current.map((item) =>
+          item.id === id ? { ...item, optionCountLabel: "" } : item,
+        ),
+      );
+      return;
+    }
+
+    const optionCount = Number(value);
+    if (Number.isInteger(optionCount) && optionCount > 0) {
+      updateItemCount(id, optionCount);
+    }
+  }
+
+  function handleOptionCountBlur(id: string) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id && !item.optionCountLabel
+          ? { ...item, optionCountLabel: String(item.optionCount) }
+          : item,
+      ),
+    );
+  }
+
+  function addOption(option: (typeof options)[number]) {
+    if (!product) return;
     setItems((current) => [
       ...current,
       {
         id: crypto.randomUUID(),
-        name: preset.subtitle === "Oyster Mushroom"
-          ? `${preset.title} Oyster Mushroom`
-          : preset.subtitle,
-        detail: preset.detail,
-        quantity: 1,
-        quantityLabel: "1",
-        unitPrice: preset.total / preset.quantity,
-        total: preset.total,
+        name: option.itemLabel,
+        detail: `${formatCurrency(product.default_price)} / ${product.unit}`,
+        optionCount: 1,
+        optionCountLabel: "1",
+        productQuantityPerOption: option.quantity,
+        pricePerOption: option.amount,
+        subtotal: option.amount,
       },
     ]);
   }
@@ -72,34 +189,104 @@ function SalesRoute() {
   function addCustomItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(customValue);
-    if (!Number.isFinite(value) || value <= 0 || !customMode) return;
+    if (!Number.isFinite(value) || value <= 0 || !customMode || !product) {
+      return;
+    }
 
     const isWeight = customMode === "weight";
-    const lineTotal = isWeight ? value * 300 : value;
+    const productQuantityPerOption = isWeight
+      ? value
+      : value / product.default_price;
+    const pricePerOption = isWeight ? value * product.default_price : value;
+    const productUnitPrice = product.default_price;
     setItems((current) => [
       ...current,
       {
         id: crypto.randomUUID(),
-        name: isWeight ? `${value}kg Oyster Mushroom` : "Custom Amount",
-        detail: isWeight ? "₱300.00 / kg" : "Fixed amount",
-        quantity: 1,
-        quantityLabel: "1",
-        unitPrice: isWeight ? 300 : value,
-        total: lineTotal,
+        name: `${formatQuantity(productQuantityPerOption)}${product.unit} ${product.name}`,
+        detail: `${formatCurrency(productUnitPrice)} / ${product.unit}`,
+        optionCount: 1,
+        optionCountLabel: "1",
+        productQuantityPerOption,
+        pricePerOption,
+        subtotal: pricePerOption,
       },
     ]);
     setCustomValue("");
     setCustomMode(null);
   }
 
-  function confirmSale() {
-    if (!items.length || !recordedBy.trim()) return;
-    setReceipt({
-      recordedBy: recordedBy.trim(),
-      recordedAt: currentTimestamp(),
-      items,
-      total,
-    });
+  async function confirmSale() {
+    const trimmedRecordedBy = recordedBy.trim();
+    const hasRecordedByError = !trimmedRecordedBy;
+    const hasItemsError = items.length === 0;
+
+    setRecordedByError(
+      hasRecordedByError ? "Enter the name of the person recording this sale." : null,
+    );
+    setSubmitError(hasItemsError ? "Add at least one item before submitting." : null);
+
+    if (hasRecordedByError || hasItemsError) return;
+    if (!product) {
+      setSubmitError("Product details are not available. Please retry loading.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const saleId = await toast.promise(
+        (async () => {
+          const { supabase } = await import("@/lib/supabase/client");
+          const { data, error } = await supabase.rpc("record_sale", {
+            p_recorded_by: trimmedRecordedBy,
+            p_items: items.map((item) => ({
+              product_id: product.id,
+              ...toSaleItemInsertValues(item),
+            })),
+          });
+
+          if (error) throw error;
+          if (!Number.isFinite(data) || data <= 0) {
+            throw new Error("The sale RPC returned an invalid sale ID.");
+          }
+
+          return data;
+        })(),
+        {
+          loading: {
+            title: "Saving sale",
+            description: "Your sale and items are being saved.",
+            type: "loading",
+          },
+          success: {
+            title: "Sale recorded",
+            description: "The sale was saved successfully.",
+            type: "success",
+          },
+          error: {
+            title: "Unable to save sale",
+            description: "Please make sure you are signed in and try again.",
+            type: "error",
+          },
+        },
+      );
+
+      setReceipt({
+        id: saleId,
+        recordedBy: trimmedRecordedBy,
+        recordedAt: currentTimestamp(),
+        items,
+        totalAmount,
+      });
+      setSubmitError(null);
+    } catch (error) {
+      console.error("Failed to save sale:", error);
+      setSubmitError(
+        "Unable to save the sale. Make sure you are signed in and try again.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function startNewSale() {
@@ -113,7 +300,10 @@ function SalesRoute() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <main className="grid min-h-[calc(100dvh-72px)] gap-6 px-5 py-6 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-7">
-        <section className="flex min-h-[560px] flex-col" aria-labelledby="sales-heading">
+        <section
+          className="flex min-h-[560px] flex-col min-w-1"
+          aria-labelledby="sales-heading"
+        >
           <div>
             <h1
               id="sales-heading"
@@ -122,55 +312,75 @@ function SalesRoute() {
               Add Sales
             </h1>
             <p className="mt-1 text-base text-muted-foreground">
-              Select a preset, record items, and confirm the sale.
+              Select an option, record items, and confirm the sale.
             </p>
-            <h2 className="mt-5 text-lg font-semibold text-primary">Presets</h2>
-            <div className="mt-2 grid max-w-[500px] grid-cols-2 gap-3 sm:grid-cols-3">
-              {SALE_PRESETS.map((preset) => (
-                <button
-                  type="button"
-                  key={preset.id}
-                  onClick={() => addPreset(preset)}
-                  className="flex min-h-[108px] flex-col items-center justify-center rounded-xl bg-accent px-3 py-4 text-center text-secondary-foreground transition-colors hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary"
+            <h2 className="mt-5 text-lg font-semibold text-primary">Options</h2>
+            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {isLoadingProduct && (
+                <p
+                  role="status"
+                  className="col-span-full text-sm text-muted-foreground"
                 >
-                  <span className="text-[30px] leading-8 font-bold tracking-tight">
-                    {preset.title}
-                  </span>
-                  <span className="mt-1 text-sm font-medium">
-                    {preset.subtitle}
-                  </span>
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomMode("amount");
-                  setCustomValue("");
-                }}
-                className="flex min-h-[108px] flex-col items-center justify-center rounded-xl bg-accent px-3 py-4 text-center text-secondary-foreground transition-colors hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary"
-              >
-                <span className="text-[22px] leading-6 font-bold tracking-tight">
-                  Custom
-                  <br />
-                  Amount
-                </span>
-                <span className="mt-1 text-sm font-medium">Enter any amount</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomMode("weight");
-                  setCustomValue("");
-                }}
-                className="flex min-h-[108px] flex-col items-center justify-center rounded-xl bg-accent px-3 py-4 text-center text-secondary-foreground transition-colors hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary"
-              >
-                <span className="text-[22px] leading-6 font-bold tracking-tight">
-                  Custom
-                  <br />
-                  Weight
-                </span>
-                <span className="mt-1 text-sm font-medium">Enter any weight</span>
-              </button>
+                  Loading Oyster Mushroom pricing…
+                </p>
+              )}
+              {productLoadError && (
+                <div className="col-span-full space-y-2" role="alert">
+                  <p className="text-sm text-destructive">{productLoadError}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setProductLoadAttempt((attempt) => attempt + 1)
+                    }
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
+              {product &&
+                !isLoadingProduct &&
+                !productLoadError &&
+                options.map((option) => (
+                  <OptionItem
+                    key={option.id}
+                    label={option.label}
+                    subtitle={option.subtitle}
+                    onSelect={() => addOption(option)}
+                  />
+                ))}
+              {product && !isLoadingProduct && !productLoadError && (
+                <>
+                  <OptionItem
+                    compact
+                    label={
+                      <>
+                        Custom
+                        <br />
+                        Amount
+                      </>
+                    }
+                    onSelect={() => {
+                      setCustomMode("amount");
+                      setCustomValue("");
+                    }}
+                  />
+                  <OptionItem
+                    compact
+                    label={
+                      <>
+                        Custom
+                        <br />
+                        Weight
+                      </>
+                    }
+                    onSelect={() => {
+                      setCustomMode("weight");
+                      setCustomValue("");
+                    }}
+                  />
+                </>
+              )}
             </div>
 
             {customMode && (
@@ -179,7 +389,9 @@ function SalesRoute() {
                 className="mt-4 flex max-w-[500px] flex-wrap items-end gap-3 rounded-xl border border-primary/20 bg-card p-4"
               >
                 <label className="min-w-40 flex-1 text-sm font-medium text-primary">
-                  {customMode === "weight" ? "Custom weight (kg)" : "Custom amount (₱)"}
+                  {customMode === "weight"
+                    ? `Custom weight (${product?.unit ?? "kg"})`
+                    : "Custom amount (₱)"}
                   <input
                     autoFocus
                     required
@@ -204,31 +416,27 @@ function SalesRoute() {
             )}
           </div>
 
-          <label className="mt-auto block pt-8 text-sm font-medium text-primary">
-            Recorded By
-            <span className="relative mt-2 block max-w-[300px]">
-              <HugeiconsIcon
-                icon={UserIcon}
-                size={21}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary"
-              />
-              <input
-                required
-                type="text"
-                value={recordedBy}
-                onChange={(event) => setRecordedBy(event.target.value)}
-                className="h-[52px] w-full rounded-2xl border border-primary bg-card pl-12 pr-4 text-base text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-primary/25"
-              />
-            </span>
-          </label>
+          <RecordedByField
+            value={recordedBy}
+            onChange={(value) => {
+              setRecordedBy(value);
+              if (value.trim()) setRecordedByError(null);
+            }}
+            placeholder="Enter your name"
+            className="mt-auto max-w-[300px] pt-8"
+            error={recordedByError}
+          />
         </section>
 
         <section
           aria-labelledby="items-heading"
-          className="flex min-h-[420px] flex-col rounded-xl bg-accent p-5 sm:p-6 lg:min-h-[calc(100dvh-128px)]"
+          className="flex min-h-[420px] flex-col rounded-xl bg-accent p-5 sm:p-6 lg:min-h-[calc(100dvh-128px)] min-w-1"
         >
           <div className="flex items-center justify-between gap-4">
-            <h2 id="items-heading" className="text-xl font-semibold text-primary">
+            <h2
+              id="items-heading"
+              className="text-xl font-semibold text-primary"
+            >
               Items
             </h2>
             <span className="text-sm text-secondary-foreground">
@@ -237,108 +445,47 @@ function SalesRoute() {
           </div>
           <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
             {items.map((item) => (
-              <article
+              <SaleItem
                 key={item.id}
-                className="flex min-h-[75px] items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 text-primary"
-              >
-                <div className="min-w-0">
-                  <h3 className="truncate text-base leading-tight font-semibold sm:text-lg">
-                    {item.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {item.detail}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateItemQuantity(item.id, item.quantity - 1)
-                    }
-                    disabled={item.quantity <= 1}
-                    aria-label={`Decrease quantity of ${item.name}`}
-                    className="grid size-8 place-items-center rounded-full border border-primary/25 bg-background text-primary transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 sm:size-10"
-                  >
-                    <HugeiconsIcon icon={MinusSignIcon} size={18} />
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    inputMode="numeric"
-                    aria-label={`Quantity of ${item.name}`}
-                    value={item.quantityLabel}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      const quantity = Number(value);
-                      if (value === "") {
-                        setItems((current) =>
-                          current.map((entry) =>
-                            entry.id === item.id
-                              ? { ...entry, quantityLabel: "" }
-                              : entry,
-                          ),
-                        );
-                      } else if (Number.isInteger(quantity) && quantity > 0) {
-                        updateItemQuantity(item.id, quantity);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (!item.quantityLabel) {
-                        setItems((current) =>
-                          current.map((entry) =>
-                            entry.id === item.id
-                              ? {
-                                  ...entry,
-                                  quantityLabel: String(entry.quantity),
-                                }
-                              : entry,
-                          ),
-                        );
-                      }
-                    }}
-                    className="h-8 w-10 rounded-full border border-primary/25 bg-background text-center text-sm font-semibold text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-primary/25 sm:h-10 sm:w-12"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateItemQuantity(item.id, item.quantity + 1)
-                    }
-                    aria-label={`Increase quantity of ${item.name}`}
-                    className="grid size-8 place-items-center rounded-full border border-primary/25 bg-background text-primary transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:size-10"
-                  >
-                    <HugeiconsIcon icon={PlusSignIcon} size={18} />
-                  </button>
-                  <span className="min-w-[62px] text-right text-sm font-semibold tabular-nums sm:min-w-[78px] sm:text-lg">
-                    {formatCurrency(item.total)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setItems((current) =>
-                        current.filter((entry) => entry.id !== item.id),
-                      )
-                    }
-                    aria-label={`Remove ${item.name}`}
-                    className="grid size-10 place-items-center rounded-full bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/30 sm:size-11"
-                  >
-                    <HugeiconsIcon icon={Delete02Icon} size={22} />
-                  </button>
-                </div>
-              </article>
+                item={item}
+                onQuantityChange={handleQuantityChange}
+                onQuantityBlur={handleOptionCountBlur}
+                onDecrement={(id) => {
+                  const currentItem = items.find((entry) => entry.id === id);
+                  if (currentItem) {
+                    updateItemCount(id, currentItem.optionCount - 1);
+                  }
+                }}
+                onIncrement={(id) => {
+                  const currentItem = items.find((entry) => entry.id === id);
+                  if (currentItem) {
+                    updateItemCount(id, currentItem.optionCount + 1);
+                  }
+                }}
+                onRemove={(id) =>
+                  setItems((current) =>
+                    current.filter((entry) => entry.id !== id),
+                  )
+                }
+              />
             ))}
             {items.length === 0 && (
               <p className="rounded-xl bg-card/60 px-4 py-6 text-center text-sm text-primary/70">
-                Choose a preset to add items to this sale.
+                Choose an option to add items to this sale.
               </p>
             )}
           </div>
           <div className="mt-5 flex items-center justify-between gap-4 text-primary">
             <span className="text-xl font-semibold">Total</span>
             <span className="text-3xl font-bold tabular-nums sm:text-4xl">
-              {formatCurrency(total)}
+              {formatCurrency(totalAmount)}
             </span>
           </div>
+          {submitError && (
+            <p role="alert" className="mt-3 text-sm font-medium text-destructive">
+              {submitError}
+            </p>
+          )}
           <div className="mt-4 grid grid-cols-[0.8fr_1.2fr] gap-3">
             <Button
               type="button"
@@ -350,11 +497,11 @@ function SalesRoute() {
             </Button>
             <Button
               type="button"
-              disabled={!items.length || !recordedBy.trim()}
+              disabled={isSaving}
               className="h-[58px] rounded-2xl text-base font-semibold"
               onClick={confirmSale}
             >
-              Confirm Sale
+              {isSaving ? "Saving..." : "Submit Sale"}
             </Button>
           </div>
         </section>
@@ -407,7 +554,7 @@ function SalesRoute() {
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Total</dt>
                 <dd className="font-semibold text-primary">
-                  {formatCurrency(receipt.total)}
+                  {formatCurrency(receipt.totalAmount)}
                 </dd>
               </div>
             </dl>
@@ -424,8 +571,8 @@ function SalesRoute() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3 text-sm font-semibold">
-                    <span>{item.quantity}</span>
-                    <span>{formatCurrency(item.total)}</span>
+                    <span>{item.optionCount}</span>
+                    <span>{formatCurrency(item.subtotal)}</span>
                   </div>
                 </article>
               ))}

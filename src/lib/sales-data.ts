@@ -1,68 +1,99 @@
+import type { Tables, TablesInsert } from "@/lib/supabase/database.types";
+
 export type SaleItemDraft = {
   id: string;
   name: string;
   detail: string;
-  quantity: number;
-  quantityLabel: string;
-  unitPrice: number;
-  total: number;
+  optionCount: number;
+  optionCountLabel: string;
+  productQuantityPerOption: number;
+  pricePerOption: number;
+  subtotal: number;
 };
 
 export type SaleDraft = {
+  id: number;
   recordedBy: string;
   recordedAt: string;
   items: SaleItemDraft[];
-  total: number;
+  totalAmount: number;
 };
 
-export type SalePreset = {
+export function toSaleItemInsertValues(
+  item: SaleItemDraft,
+): Pick<TablesInsert<"sale_item">, "quantity" | "subtotal"> {
+  return {
+    quantity: item.productQuantityPerOption * item.optionCount,
+    subtotal: item.subtotal,
+  };
+}
+
+export type SaleOption = {
   id: string;
-  title: string;
+  label: string;
   subtitle: string;
+  itemLabel: string;
   quantity: number;
-  total: number;
-  detail: string;
+  amount: number;
+  isFixedAmount?: boolean;
 };
 
-export const SALE_PRESETS: SalePreset[] = [
-  {
-    id: "weight-1kg",
-    title: "1kg",
-    subtitle: "Oyster Mushroom",
-    quantity: 1,
-    total: 300,
-    detail: "₱300.00 / kg",
-  },
-  {
-    id: "weight-half-kg",
-    title: "1/2kg",
-    subtitle: "Oyster Mushroom",
-    quantity: 0.5,
-    total: 150,
-    detail: "₱300.00 / kg",
-  },
-  {
-    id: "weight-quarter-kg",
-    title: "1/4kg",
-    subtitle: "Oyster Mushroom",
-    quantity: 0.25,
-    total: 75,
-    detail: "₱300.00 / kg",
-  },
-  {
-    id: "amount-100",
-    title: "₱100",
-    subtitle: "Fixed amount",
-    quantity: 1,
-    total: 100,
-    detail: "Fixed amount",
-  },
-  {
-    id: "amount-50",
-    title: "₱50",
-    subtitle: "Fixed amount",
-    quantity: 1,
-    total: 50,
-    detail: "Fixed amount",
-  },
-];
+type OysterMushroomProduct = Pick<
+  Tables<"products">,
+  "default_price" | "name" | "unit"
+>;
+
+export const OYSTER_MUSHROOM_SALE_OPTIONS = (
+  product: OysterMushroomProduct,
+): SaleOption[] => {
+  const pricePerUnit = product.default_price;
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount);
+  return [
+    {
+      id: "weight-1-unit",
+      label: `1${product.unit}`,
+      subtitle: formatCurrency(pricePerUnit),
+      itemLabel: `1${product.unit} ${product.name}`,
+      quantity: 1,
+      amount: pricePerUnit,
+    },
+    {
+      id: "weight-half-unit",
+      label: `1/2${product.unit}`,
+      subtitle: formatCurrency(pricePerUnit * 0.5),
+      itemLabel: `1/2${product.unit} ${product.name}`,
+      quantity: 0.5,
+      amount: pricePerUnit * 0.5,
+    },
+    {
+      id: "weight-quarter-unit",
+      label: `1/4${product.unit}`,
+      subtitle: formatCurrency(pricePerUnit * 0.25),
+      itemLabel: `1/4${product.unit} ${product.name}`,
+      quantity: 0.25,
+      amount: pricePerUnit * 0.25,
+    },
+    /* {
+      id: "amount-100",
+      label: formatCurrency(100),
+      subtitle: `${formatProductQuantity(100 / pricePerUnit)}${product.unit}`,
+      itemLabel: `${formatProductQuantity(100 / pricePerUnit)}${product.unit} ${product.name}`,
+      quantity: 100 / pricePerUnit,
+      amount: 100,
+      isFixedAmount: true,
+    },
+    {
+      id: "amount-50",
+      label: formatCurrency(50),
+      subtitle: `${formatProductQuantity(50 / pricePerUnit)}${product.unit}`,
+      itemLabel: `${formatProductQuantity(50 / pricePerUnit)}${product.unit} ${product.name}`,
+      quantity: 50 / pricePerUnit,
+      amount: 50,
+      isFixedAmount: true,
+    } */
+  ];
+};
