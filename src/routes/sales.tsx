@@ -1,5 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import {
+  CheckmarkCircle02Icon,
+  ShoppingBasket01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
@@ -7,6 +10,14 @@ import { RecordedByField } from "@/components/recorded-by-field";
 import { OptionItem } from "@/components/sales/option-item";
 import { SaleItem } from "@/components/sales/sale-item";
 import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { toast } from "@/components/ui/toast";
 import {
   OYSTER_MUSHROOM_SALE_OPTIONS,
@@ -169,21 +180,45 @@ function SalesRoute() {
     );
   }
 
-  function addOption(option: (typeof options)[number]) {
+  function changeOptionCount(option: (typeof options)[number], change: 1 | -1) {
     if (!product) return;
-    setItems((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        name: option.itemLabel,
-        detail: `${formatCurrency(product.default_price)} / ${product.unit}`,
-        optionCount: 1,
-        optionCountLabel: "1",
-        productQuantityPerOption: option.quantity,
-        pricePerOption: option.amount,
-        subtotal: option.amount,
-      },
-    ]);
+
+    setItems((current) => {
+      const existing = current.find((item) => item.optionId === option.id);
+      if (!existing) {
+        if (change < 0) return current;
+        return [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            optionId: option.id,
+            name: option.itemLabel,
+            detail: `${formatCurrency(product.default_price)} / ${product.unit}`,
+            optionCount: 1,
+            optionCountLabel: "1",
+            productQuantityPerOption: option.quantity,
+            pricePerOption: option.amount,
+            subtotal: option.amount,
+          },
+        ];
+      }
+
+      const optionCount = existing.optionCount + change;
+      if (optionCount < 1) {
+        return current.filter((item) => item.id !== existing.id);
+      }
+
+      return current.map((item) =>
+        item.id === existing.id
+          ? {
+              ...item,
+              optionCount,
+              optionCountLabel: String(optionCount),
+              subtotal: item.pricePerOption * optionCount,
+            }
+          : item,
+      );
+    });
   }
 
   function addCustomItem(event: FormEvent<HTMLFormElement>) {
@@ -222,13 +257,19 @@ function SalesRoute() {
     const hasItemsError = items.length === 0;
 
     setRecordedByError(
-      hasRecordedByError ? "Enter the name of the person recording this sale." : null,
+      hasRecordedByError
+        ? "Enter the name of the person recording this sale."
+        : null,
     );
-    setSubmitError(hasItemsError ? "Add at least one item before submitting." : null);
+    setSubmitError(
+      hasItemsError ? "Add at least one item before submitting." : null,
+    );
 
     if (hasRecordedByError || hasItemsError) return;
     if (!product) {
-      setSubmitError("Product details are not available. Please retry loading.");
+      setSubmitError(
+        "Product details are not available. Please retry loading.",
+      );
       return;
     }
 
@@ -296,6 +337,44 @@ function SalesRoute() {
     setCustomValue("");
   }
 
+  function renderSaleItems() {
+    return (
+      <>
+        {items.map((item) => (
+          <SaleItem
+            key={item.id}
+            item={item}
+            onQuantityChange={handleQuantityChange}
+            onQuantityBlur={handleOptionCountBlur}
+            onDecrement={(id) => {
+              const currentItem = items.find((entry) => entry.id === id);
+              if (currentItem) {
+                if (currentItem.optionCount === 1) {
+                  setItems((current) =>
+                    current.filter((entry) => entry.id !== id),
+                  );
+                } else {
+                  updateItemCount(id, currentItem.optionCount - 1);
+                }
+              }
+            }}
+            onIncrement={(id) => {
+              const currentItem = items.find((entry) => entry.id === id);
+              if (currentItem) {
+                updateItemCount(id, currentItem.optionCount + 1);
+              }
+            }}
+          />
+        ))}
+        {items.length === 0 && (
+          <p className="rounded-xl bg-card/60 px-4 py-6 text-center text-sm text-primary/70">
+            Choose an option to add items to this sale.
+          </p>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -305,16 +384,16 @@ function SalesRoute() {
           aria-labelledby="sales-heading"
         >
           <div>
-            <h1
+            {/* <h1
               id="sales-heading"
               className="text-3xl font-semibold tracking-tight text-primary"
             >
               Add Sales
-            </h1>
-            <p className="mt-1 text-base text-muted-foreground">
+            </h1> */}
+            {/* <p className="mt-1 text-base text-muted-foreground">
               Select an option, record items, and confirm the sale.
-            </p>
-            <h2 className="mt-5 text-lg font-semibold text-primary">Options</h2>
+            </p> */}
+            {/* <h2 className="mt-5 text-lg font-semibold text-primary">Options</h2> */}
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {isLoadingProduct && (
                 <p
@@ -346,13 +425,17 @@ function SalesRoute() {
                     key={option.id}
                     label={option.label}
                     subtitle={option.subtitle}
-                    onSelect={() => addOption(option)}
+                    quantity={
+                      items.find((item) => item.optionId === option.id)
+                        ?.optionCount ?? 0
+                    }
+                    onDecrement={() => changeOptionCount(option, -1)}
+                    onIncrement={() => changeOptionCount(option, 1)}
                   />
                 ))}
-              {product && !isLoadingProduct && !productLoadError && (
+              {/* {product && !isLoadingProduct && !productLoadError && (
                 <>
                   <OptionItem
-                    compact
                     label={
                       <>
                         Custom
@@ -366,7 +449,6 @@ function SalesRoute() {
                     }}
                   />
                   <OptionItem
-                    compact
                     label={
                       <>
                         Custom
@@ -380,7 +462,7 @@ function SalesRoute() {
                     }}
                   />
                 </>
-              )}
+              )} */}
             </div>
 
             {customMode && (
@@ -428,83 +510,91 @@ function SalesRoute() {
           />
         </section>
 
-        <section
-          aria-labelledby="items-heading"
-          className="flex min-h-[420px] flex-col rounded-xl bg-accent p-5 sm:p-6 lg:min-h-[calc(100dvh-128px)] min-w-1"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <h2
-              id="items-heading"
-              className="text-xl font-semibold text-primary"
-            >
-              Items
-            </h2>
-            <span className="text-sm text-secondary-foreground">
-              {items.length} {items.length === 1 ? "item" : "items"}
-            </span>
-          </div>
-          <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
-            {items.map((item) => (
-              <SaleItem
-                key={item.id}
-                item={item}
-                onQuantityChange={handleQuantityChange}
-                onQuantityBlur={handleOptionCountBlur}
-                onDecrement={(id) => {
-                  const currentItem = items.find((entry) => entry.id === id);
-                  if (currentItem) {
-                    updateItemCount(id, currentItem.optionCount - 1);
+        <Drawer showSwipeHandle>
+          <section
+            aria-labelledby="items-heading"
+            className="flex min-w-1 flex-col rounded-xl bg-muted p-5 sm:p-6 lg:min-h-[calc(100dvh-128px)]"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <h2
+                id="items-heading"
+                className="text-2xl font-semibold text-primary"
+              >
+                Items
+              </h2>
+              <div className="flex items-center gap-3">
+                <DrawerTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="lg:hidden"
+                      aria-label={`Show sale items, ${items.length} ${items.length === 1 ? "item" : "items"}`}
+                    />
                   }
-                }}
-                onIncrement={(id) => {
-                  const currentItem = items.find((entry) => entry.id === id);
-                  if (currentItem) {
-                    updateItemCount(id, currentItem.optionCount + 1);
-                  }
-                }}
-                onRemove={(id) =>
-                  setItems((current) =>
-                    current.filter((entry) => entry.id !== id),
-                  )
-                }
-              />
-            ))}
-            {items.length === 0 && (
-              <p className="rounded-xl bg-card/60 px-4 py-6 text-center text-sm text-primary/70">
-                Choose an option to add items to this sale.
+                >
+                  <HugeiconsIcon
+                    icon={ShoppingBasket01Icon}
+                    size={20}
+                    data-icon="inline-start"
+                    aria-hidden="true"
+                  />
+                </DrawerTrigger>
+                <span className="text-sm text-secondary-foreground sm:text-base">
+                  {items.length} {items.length === 1 ? "item" : "items"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 hidden min-h-0 flex-1 flex-col overflow-y-auto lg:flex">
+              {renderSaleItems()}
+            </div>
+            <div className="mt-auto flex items-center justify-between gap-4 border-t border-primary/70 pt-5 text-primary lg:mt-5">
+              <span className="text-2xl font-semibold sm:text-3xl">Total</span>
+              <span className="text-4xl font-bold tabular-nums sm:text-5xl">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+            {submitError && (
+              <p
+                role="alert"
+                className="mt-3 text-sm font-medium text-destructive"
+              >
+                {submitError}
               </p>
             )}
-          </div>
-          <div className="mt-5 flex items-center justify-between gap-4 text-primary">
-            <span className="text-xl font-semibold">Total</span>
-            <span className="text-3xl font-bold tabular-nums sm:text-4xl">
-              {formatCurrency(totalAmount)}
-            </span>
-          </div>
-          {submitError && (
-            <p role="alert" className="mt-3 text-sm font-medium text-destructive">
-              {submitError}
-            </p>
-          )}
-          <div className="mt-4 grid grid-cols-[0.8fr_1.2fr] gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-[58px] rounded-2xl bg-muted text-base font-semibold text-primary hover:bg-muted/80"
-              onClick={() => navigate({ to: "/" })}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={isSaving}
-              className="h-[58px] rounded-2xl text-base font-semibold"
-              onClick={confirmSale}
-            >
-              {isSaving ? "Saving..." : "Submit Sale"}
-            </Button>
-          </div>
-        </section>
+            <div className="mt-4 grid grid-cols-[0.8fr_1.2fr] gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-[58px] rounded-2xl bg-accent text-base font-semibold text-primary hover:bg-accent/50"
+                onClick={() => navigate({ to: "/" })}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isSaving}
+                className="h-[58px] rounded-2xl text-base font-semibold"
+                onClick={confirmSale}
+              >
+                {isSaving ? "Saving..." : "Submit Sale"}
+              </Button>
+            </div>
+          </section>
+          <DrawerContent className="max-h-[85dvh] w-[calc(100%-1rem)]">
+            <DrawerHeader>
+              <DrawerTitle>Sale items</DrawerTitle>
+              <DrawerDescription>
+                {items.length} {items.length === 1 ? "item" : "items"} in this
+                sale
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3">
+              {renderSaleItems()}
+            </div>
+          </DrawerContent>
+        </Drawer>
       </main>
 
       {receipt && (

@@ -2,6 +2,7 @@ import type { Tables, TablesInsert } from "@/lib/supabase/database.types";
 
 export type SaleItemDraft = {
   id: string;
+  optionId?: string;
   name: string;
   detail: string;
   optionCount: number;

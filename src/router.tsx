@@ -3,13 +3,30 @@ import {
   createRoute,
   createRouter,
   Outlet,
+  redirect,
 } from "@tanstack/react-router";
 import HomeRoute from "@/routes/home";
 import LoginRoute from "@/routes/login";
 import SalesRoute from "@/routes/sales";
 import SignupRoute from "@/routes/signup";
 
-const rootRoute = createRootRoute({ component: Outlet });
+const rootRoute = createRootRoute({
+  component: Outlet,
+  beforeLoad: async ({ location }) => {
+    if (location.pathname === "/login" || location.pathname === "/signup") {
+      return;
+    }
+
+    const { supabase } = await import("@/lib/supabase/client");
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) throw error;
+    if (!session) throw redirect({ to: "/login" });
+  },
+});
 
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,

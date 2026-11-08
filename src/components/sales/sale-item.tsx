@@ -1,8 +1,4 @@
-import {
-  Delete02Icon,
-  MinusSignIcon,
-  PlusSignIcon,
-} from "@hugeicons/core-free-icons";
+import { MinusSignIcon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { SaleItemDraft } from "@/lib/sales-data";
 
@@ -12,7 +8,6 @@ type SaleItemProps = {
   onQuantityBlur: (id: string) => void;
   onDecrement: (id: string) => void;
   onIncrement: (id: string) => void;
-  onRemove: (id: string) => void;
 };
 
 const formatCurrency = (amount: number) =>
@@ -27,25 +22,25 @@ export function SaleItem({
   onQuantityBlur,
   onDecrement,
   onIncrement,
-  onRemove,
 }: SaleItemProps) {
   return (
-    <article className="flex min-h-[75px] items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 text-primary">
+    <article className="grid min-h-[82px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border/70 py-3 text-primary last:border-b-0 sm:gap-5">
       <div className="min-w-0">
         <h3 className="truncate text-base leading-tight font-semibold sm:text-lg">
           {item.name}
         </h3>
-        <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
+        <p className="mt-2 inline-flex rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium text-muted-foreground sm:text-sm">
+          {item.detail}
+        </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+      <div className="inline-flex shrink-0 items-center overflow-hidden rounded-md bg-background/80">
         <button
           type="button"
           onClick={() => onDecrement(item.id)}
-          disabled={item.optionCount <= 1}
           aria-label={`Decrease quantity of ${item.name}`}
-          className="grid size-8 place-items-center rounded-full border border-primary/25 bg-background text-primary transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 sm:size-10"
+          className="grid size-8 place-items-center text-primary transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:size-9"
         >
-          <HugeiconsIcon icon={MinusSignIcon} size={18} />
+          <HugeiconsIcon icon={MinusSignIcon} size={18} aria-hidden="true" />
         </button>
         <input
           type="number"
@@ -56,28 +51,20 @@ export function SaleItem({
           value={item.optionCountLabel}
           onChange={(event) => onQuantityChange(item.id, event.target.value)}
           onBlur={() => onQuantityBlur(item.id)}
-          className="h-8 w-10 rounded-full border border-primary/25 bg-background text-center text-sm font-semibold text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-primary/25 sm:h-10 sm:w-12"
+          className="h-8 w-8 border-x border-border/70 bg-transparent text-center text-sm font-medium text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-primary/25 sm:w-9"
         />
         <button
           type="button"
           onClick={() => onIncrement(item.id)}
           aria-label={`Increase quantity of ${item.name}`}
-          className="grid size-8 place-items-center rounded-full border border-primary/25 bg-background text-primary transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:size-10"
+          className="grid size-8 place-items-center text-primary transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:size-9"
         >
-          <HugeiconsIcon icon={PlusSignIcon} size={18} />
-        </button>
-        <span className="min-w-[62px] text-right text-sm font-semibold tabular-nums sm:min-w-[78px] sm:text-lg">
-          {formatCurrency(item.subtotal)}
-        </span>
-        <button
-          type="button"
-          onClick={() => onRemove(item.id)}
-          aria-label={`Remove ${item.name}`}
-          className="grid size-10 place-items-center rounded-full bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/30 sm:size-11"
-        >
-          <HugeiconsIcon icon={Delete02Icon} size={22} />
+          <HugeiconsIcon icon={PlusSignIcon} size={18} aria-hidden="true" />
         </button>
       </div>
+      <span className="min-w-[78px] text-right text-base font-semibold tabular-nums sm:min-w-[112px] sm:text-xl">
+        {formatCurrency(item.subtotal)}
+      </span>
     </article>
   );
 }
