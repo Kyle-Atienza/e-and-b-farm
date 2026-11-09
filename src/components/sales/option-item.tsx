@@ -22,6 +22,7 @@ type SelectOptionItemProps = OptionItemBaseProps & {
   quantity?: never;
   onIncrement?: never;
   onDecrement?: never;
+  custom?: boolean;
 };
 
 type OptionItemProps = QuantityOptionItemProps | SelectOptionItemProps;

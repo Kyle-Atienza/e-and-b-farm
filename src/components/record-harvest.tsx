@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ShoppingBasket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { toast } from "sonner";
 import { RecordHarvestDialog } from "@/components/record-harvest-dialog";
-import { toast } from "@/components/ui/toast";
 import type { HarvestRecordDraft } from "@/lib/harvest-data";
 
 export function RecordHarvest() {
@@ -15,37 +15,30 @@ export function RecordHarvest() {
     setErrorMessage(null);
 
     try {
-      await toast.promise(
-        (async () => {
-          const { supabase } = await import("@/lib/supabase/client");
-          const { error } = await supabase.from("harvest_records").insert({
-            crop_id: 1,
-            quantity: record.quantity,
-            harvest_date: record.harvest_date,
-            harvest_period: record.harvest_period,
-            recorded_by: record.recorded_by,
-          });
+      const savePromise = (async () => {
+        const { supabase } = await import("@/lib/supabase/client");
+        const { error } = await supabase.from("harvest_records").insert({
+          crop_id: 1,
+          quantity: record.quantity,
+          harvest_date: record.harvest_date,
+          harvest_period: record.harvest_period,
+          recorded_by: record.recorded_by,
+        });
 
-          if (error) throw error;
-        })(),
-        {
-          loading: {
-            title: "Saving harvest record",
-            description: "Your harvest data is being saved.",
-            type: "loading",
-          },
-          success: {
-            title: "Harvest recorded",
-            description: "The harvest record was saved successfully.",
-            type: "success",
-          },
-          error: {
-            title: "Unable to save harvest",
-            description: "Please check your connection and try again.",
-            type: "error",
-          },
+        if (error) throw error;
+      })();
+      toast.promise(savePromise, {
+        loading: "Saving harvest record",
+        success: {
+          message: "Harvest recorded",
+          description: "The harvest record was saved successfully.",
         },
-      );
+        error: {
+          message: "Unable to save harvest",
+          description: "Please check your connection and try again.",
+        },
+      });
+      await savePromise;
 
       setIsOpen(false);
       return true;

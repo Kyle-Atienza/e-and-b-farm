@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  Cancel01Icon,
   CheckmarkCircle02Icon,
   ShoppingBasket01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
 import { RecordedByField } from "@/components/recorded-by-field";
@@ -12,13 +14,14 @@ import { SaleItem } from "@/components/sales/sale-item";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { toast } from "@/components/ui/toast";
 import {
   OYSTER_MUSHROOM_SALE_OPTIONS,
   toSaleItemInsertValues,
@@ -74,50 +77,41 @@ function SalesRoute() {
       setProduct(null);
 
       try {
-        const data = await toast.promise(
-          (async () => {
-            const { supabase } = await import("@/lib/supabase/client");
-            const { data: productData, error } = await supabase
-              .from("products")
-              .select("id, name, default_price, unit, is_active")
-              .eq("id", 1)
-              .maybeSingle();
+        const productPromise = (async () => {
+          const { supabase } = await import("@/lib/supabase/client");
+          const { data: productData, error } = await supabase
+            .from("products")
+            .select("id, name, default_price, unit, is_active")
+            .eq("id", 1)
+            .maybeSingle();
 
-            if (error) throw error;
-            if (!productData)
-              throw new Error("Oyster Mushroom product (id: 1) not found.");
-            if (productData.is_active === false) {
-              throw new Error("Oyster Mushroom product (id: 1) is inactive.");
-            }
-            if (
-              !Number.isFinite(productData.default_price) ||
-              productData.default_price <= 0
-            ) {
-              throw new Error(
-                "Oyster Mushroom product has an invalid default price.",
-              );
-            }
+          if (error) throw error;
+          if (!productData)
+            throw new Error("Oyster Mushroom product (id: 1) not found.");
+          if (productData.is_active === false) {
+            throw new Error("Oyster Mushroom product (id: 1) is inactive.");
+          }
+          if (
+            !Number.isFinite(productData.default_price) ||
+            productData.default_price <= 0
+          ) {
+            throw new Error(
+              "Oyster Mushroom product has an invalid default price.",
+            );
+          }
 
-            return productData;
-          })(),
-          {
-            loading: {
-              title: "Loading sales options",
-              description: "Fetching Oyster Mushroom pricing.",
-              type: "loading",
-            },
-            success: {
-              title: "Sales options ready",
-              description: "Product pricing loaded successfully.",
-              type: "success",
-            },
-            error: {
-              title: "Unable to load sales options",
-              description: "Please try again.",
-              type: "error",
-            },
+          return productData;
+        })();
+        toast.promise(productPromise, {
+          loading: "Loading sales options",
+          success: {
+            message: "Sales options ready",
           },
-        );
+          error: {
+            message: "Unable to load sales options",
+          },
+        });
+        const data = await productPromise;
 
         if (isCurrent) setProduct(data);
       } catch (error) {
@@ -275,42 +269,33 @@ function SalesRoute() {
 
     setIsSaving(true);
     try {
-      const saleId = await toast.promise(
-        (async () => {
-          const { supabase } = await import("@/lib/supabase/client");
-          const { data, error } = await supabase.rpc("record_sale", {
-            p_recorded_by: trimmedRecordedBy,
-            p_items: items.map((item) => ({
-              product_id: product.id,
-              ...toSaleItemInsertValues(item),
-            })),
-          });
+      const salePromise = (async () => {
+        const { supabase } = await import("@/lib/supabase/client");
+        const { data, error } = await supabase.rpc("record_sale", {
+          p_recorded_by: trimmedRecordedBy,
+          p_items: items.map((item) => ({
+            product_id: product.id,
+            ...toSaleItemInsertValues(item),
+          })),
+        });
 
-          if (error) throw error;
-          if (!Number.isFinite(data) || data <= 0) {
-            throw new Error("The sale RPC returned an invalid sale ID.");
-          }
+        if (error) throw error;
+        if (!Number.isFinite(data) || data <= 0) {
+          throw new Error("The sale RPC returned an invalid sale ID.");
+        }
 
-          return data;
-        })(),
-        {
-          loading: {
-            title: "Saving sale",
-            description: "Your sale and items are being saved.",
-            type: "loading",
-          },
-          success: {
-            title: "Sale recorded",
-            description: "The sale was saved successfully.",
-            type: "success",
-          },
-          error: {
-            title: "Unable to save sale",
-            description: "Please make sure you are signed in and try again.",
-            type: "error",
-          },
+        return data;
+      })();
+      toast.promise(salePromise, {
+        loading: "Saving sale",
+        success: {
+          message: "Sale recorded",
         },
-      );
+        error: {
+          message: "Unable to save sale",
+        },
+      });
+      const saleId = await salePromise;
 
       setReceipt({
         id: saleId,
@@ -340,32 +325,34 @@ function SalesRoute() {
   function renderSaleItems() {
     return (
       <>
-        {items.map((item) => (
-          <SaleItem
-            key={item.id}
-            item={item}
-            onQuantityChange={handleQuantityChange}
-            onQuantityBlur={handleOptionCountBlur}
-            onDecrement={(id) => {
-              const currentItem = items.find((entry) => entry.id === id);
-              if (currentItem) {
-                if (currentItem.optionCount === 1) {
-                  setItems((current) =>
-                    current.filter((entry) => entry.id !== id),
-                  );
-                } else {
-                  updateItemCount(id, currentItem.optionCount - 1);
+        <div className="flex flex-col gap-4">
+          {items.map((item) => (
+            <SaleItem
+              key={item.id}
+              item={item}
+              onQuantityChange={handleQuantityChange}
+              onQuantityBlur={handleOptionCountBlur}
+              onDecrement={(id) => {
+                const currentItem = items.find((entry) => entry.id === id);
+                if (currentItem) {
+                  if (currentItem.optionCount === 1) {
+                    setItems((current) =>
+                      current.filter((entry) => entry.id !== id),
+                    );
+                  } else {
+                    updateItemCount(id, currentItem.optionCount - 1);
+                  }
                 }
-              }
-            }}
-            onIncrement={(id) => {
-              const currentItem = items.find((entry) => entry.id === id);
-              if (currentItem) {
-                updateItemCount(id, currentItem.optionCount + 1);
-              }
-            }}
-          />
-        ))}
+              }}
+              onIncrement={(id) => {
+                const currentItem = items.find((entry) => entry.id === id);
+                if (currentItem) {
+                  updateItemCount(id, currentItem.optionCount + 1);
+                }
+              }}
+            />
+          ))}
+        </div>
         {items.length === 0 && (
           <p className="rounded-xl bg-card/60 px-4 py-6 text-center text-sm text-primary/70">
             Choose an option to add items to this sale.
@@ -378,22 +365,12 @@ function SalesRoute() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <main className="grid min-h-[calc(100dvh-72px)] gap-6 px-5 py-6 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-7">
+      <main className="grid min-h-[calc(100dvh-72px)] gap-6 px-5 py-6 grid-rows-[1fr_auto] lg:grid-rows-[1fr] lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-7">
         <section
           className="flex min-h-[560px] flex-col min-w-1"
           aria-labelledby="sales-heading"
         >
           <div>
-            {/* <h1
-              id="sales-heading"
-              className="text-3xl font-semibold tracking-tight text-primary"
-            >
-              Add Sales
-            </h1> */}
-            {/* <p className="mt-1 text-base text-muted-foreground">
-              Select an option, record items, and confirm the sale.
-            </p> */}
-            {/* <h2 className="mt-5 text-lg font-semibold text-primary">Options</h2> */}
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {isLoadingProduct && (
                 <p
@@ -433,9 +410,10 @@ function SalesRoute() {
                     onIncrement={() => changeOptionCount(option, 1)}
                   />
                 ))}
-              {/* {product && !isLoadingProduct && !productLoadError && (
+              {product && !isLoadingProduct && !productLoadError && (
                 <>
                   <OptionItem
+                    custom
                     label={
                       <>
                         Custom
@@ -449,6 +427,7 @@ function SalesRoute() {
                     }}
                   />
                   <OptionItem
+                    custom
                     label={
                       <>
                         Custom
@@ -462,7 +441,7 @@ function SalesRoute() {
                     }}
                   />
                 </>
-              )} */}
+              )}
             </div>
 
             {customMode && (
@@ -497,23 +476,21 @@ function SalesRoute() {
               </form>
             )}
           </div>
-
-          <RecordedByField
-            value={recordedBy}
-            onChange={(value) => {
-              setRecordedBy(value);
-              if (value.trim()) setRecordedByError(null);
-            }}
-            placeholder="Enter your name"
-            className="mt-auto max-w-[300px] pt-8"
-            error={recordedByError}
-          />
         </section>
 
-        <Drawer showSwipeHandle>
+        <Drawer swipeDirection="right">
+          <DrawerTrigger
+            type="button"
+            className="h-[58px] w-full rounded-2xl text-base font-semibold bg-primary text-background lg:hidden"
+          >
+            Show Items{" "}
+            <span className="text-sm font-thin sm:text-base">
+              ({items.length})
+            </span>
+          </DrawerTrigger>
           <section
             aria-labelledby="items-heading"
-            className="flex min-w-1 flex-col rounded-xl bg-muted p-5 sm:p-6 lg:min-h-[calc(100dvh-128px)]"
+            className=" min-w-1 flex-col rounded-xl bg-muted p-5 sm:p-6 hidden lg:flex"
           >
             <div className="flex items-center justify-between gap-4">
               <h2
@@ -523,24 +500,6 @@ function SalesRoute() {
                 Items
               </h2>
               <div className="flex items-center gap-3">
-                <DrawerTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="lg:hidden"
-                      aria-label={`Show sale items, ${items.length} ${items.length === 1 ? "item" : "items"}`}
-                    />
-                  }
-                >
-                  <HugeiconsIcon
-                    icon={ShoppingBasket01Icon}
-                    size={20}
-                    data-icon="inline-start"
-                    aria-hidden="true"
-                  />
-                </DrawerTrigger>
                 <span className="text-sm text-secondary-foreground sm:text-base">
                   {items.length} {items.length === 1 ? "item" : "items"}
                 </span>
@@ -563,14 +522,24 @@ function SalesRoute() {
                 {submitError}
               </p>
             )}
+            <RecordedByField
+              value={recordedBy}
+              onChange={(value) => {
+                setRecordedBy(value);
+                if (value.trim()) setRecordedByError(null);
+              }}
+              placeholder="Enter your name"
+              className="mt-auto pt-8"
+              error={recordedByError}
+            />
             <div className="mt-4 grid grid-cols-[0.8fr_1.2fr] gap-3">
               <Button
                 type="button"
                 variant="secondary"
                 className="h-[58px] rounded-2xl bg-accent text-base font-semibold text-primary hover:bg-accent/50"
-                onClick={() => navigate({ to: "/" })}
+                onClick={() => setItems([])}
               >
-                Cancel
+                Clear
               </Button>
               <Button
                 type="button"
@@ -582,17 +551,74 @@ function SalesRoute() {
               </Button>
             </div>
           </section>
-          <DrawerContent className="max-h-[85dvh] w-[calc(100%-1rem)]">
+          <DrawerContent className="w-[calc(100%-1rem)] bg-background">
             <DrawerHeader>
-              <DrawerTitle>Sale items</DrawerTitle>
-              <DrawerDescription>
-                {items.length} {items.length === 1 ? "item" : "items"} in this
-                sale
-              </DrawerDescription>
+              <DrawerTitle>
+                {/* Sale items */}
+                <div className="flex items-center justify-between gap-4">
+                  <h2
+                    id="items-heading"
+                    className="text-lg font-semibold text-primary"
+                  >
+                    Items{" "}
+                    <span className="text-sm text-secondary-foreground sm:text-base">
+                      {items.length} {items.length === 1 ? "item" : "items"}
+                    </span>
+                  </h2>
+                  <DrawerClose className="bg-secondary rounded-full p-1.5">
+                    <HugeiconsIcon icon={Cancel01Icon} size={16} />
+                  </DrawerClose>
+                </div>
+              </DrawerTitle>
             </DrawerHeader>
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3">
               {renderSaleItems()}
             </div>
+            <DrawerFooter className="gap-3">
+              <div className="mt-auto flex items-center justify-between gap-4 border-t border-primary/70 pt-3 text-primary lg:mt-5">
+                <span className="text-2xl font-semibold sm:text-3xl">
+                  Total
+                </span>
+                <span className="text-4xl font-bold tabular-nums sm:text-5xl">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
+              {submitError && (
+                <p
+                  role="alert"
+                  className="mt-3 text-sm font-medium text-destructive"
+                >
+                  {submitError}
+                </p>
+              )}
+              <RecordedByField
+                value={recordedBy}
+                onChange={(value) => {
+                  setRecordedBy(value);
+                  if (value.trim()) setRecordedByError(null);
+                }}
+                placeholder="Enter your name"
+                error={recordedByError}
+              />
+              <div className="grid grid-cols-[0.8fr_1.2fr] gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-[58px] rounded-2xl bg-accent text-base font-semibold text-primary hover:bg-accent/50"
+                  onClick={() => navigate({ to: "/" })}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  disabled={isSaving}
+                  className="h-[58px] rounded-2xl text-base font-semibold"
+                  onClick={confirmSale}
+                >
+                  {isSaving ? "Saving..." : "Submit Sale"}
+                </Button>
+              </div>
+            </DrawerFooter>
           </DrawerContent>
         </Drawer>
       </main>

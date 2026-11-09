@@ -81,6 +81,9 @@
   --sidebar-accent-foreground: oklch(0.34 0.075 148);
   --sidebar-border: oklch(0.84 0.025 137);
   --sidebar-ring: oklch(0.56 0.09 148);
+
+  --drawer-content-height: 100dvh;
+  --drawer-content-max-height: 100dvh;
 }
 
 .dark {
@@ -130,5 +133,5 @@
 }
 
 * {
-  line-height: 1em;
+  line-height: 1.25em;
 }

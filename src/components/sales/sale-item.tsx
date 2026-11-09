@@ -24,11 +24,9 @@ export function SaleItem({
   onIncrement,
 }: SaleItemProps) {
   return (
-    <article className="grid min-h-[82px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border/70 py-3 text-primary last:border-b-0 sm:gap-5">
-      <div className="min-w-0">
-        <h3 className="truncate text-base leading-tight font-semibold sm:text-lg">
-          {item.name}
-        </h3>
+    <article className="min-h-[82px] flex flex-wrap items-center gap-3 text-primary sm:gap-5 rounded-xl bg-card/60 px-4 py-6 justify-end">
+      <div className="min-w-0 lg:flex-1 w-full">
+        <h3 className="truncate font-semibold text-xl">{item.name}</h3>
         <p className="mt-2 inline-flex rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium text-muted-foreground sm:text-sm">
           {item.detail}
         </p>
@@ -62,7 +60,7 @@ export function SaleItem({
           <HugeiconsIcon icon={PlusSignIcon} size={18} aria-hidden="true" />
         </button>
       </div>
-      <span className="min-w-[78px] text-right text-base font-semibold tabular-nums sm:min-w-[112px] sm:text-xl">
+      <span className="min-w-[78px] text-center py-1.5 font-semibold tabular-nums sm:min-w-[112px] sm:text-xl bg-background/80 rounded-full">
         {formatCurrency(item.subtotal)}
       </span>
     </article>

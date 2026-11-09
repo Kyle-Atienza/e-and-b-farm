@@ -7,10 +7,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { RecordedByField } from "@/components/recorded-by-field";
 import { Button } from "@/components/ui/button";
-import type {
-  HarvestPeriod,
-  HarvestRecordDraft,
-} from "@/lib/harvest-data";
+import type { HarvestPeriod, HarvestRecordDraft } from "@/lib/harvest-data";
 import { HARVEST_PERIOD_OPTIONS } from "@/lib/harvest-data";
 
 type RecordHarvestDialogProps = {
@@ -98,7 +95,7 @@ export function RecordHarvestDialog({
         </p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-primary">
+            <label className="block text-sm font-medium text-primary w-full">
               Date
               <span className="relative mt-2 block">
                 <HugeiconsIcon
