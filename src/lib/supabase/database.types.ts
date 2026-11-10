@@ -34,6 +34,7 @@ export type Database = {
       }
       harvest_records: {
         Row: {
+          client_request_id: string | null
           created_at: string
           crop_id: number | null
           harvest_date: string | null
@@ -43,6 +44,7 @@ export type Database = {
           recorded_by: string | null
         }
         Insert: {
+          client_request_id?: string | null
           created_at?: string
           crop_id?: number | null
           harvest_date?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           recorded_by?: string | null
         }
         Update: {
+          client_request_id?: string | null
           created_at?: string
           crop_id?: number | null
           harvest_date?: string | null
@@ -144,6 +147,8 @@ export type Database = {
       }
       sales: {
         Row: {
+          client_request_hash: string | null
+          client_request_id: string | null
           created_at: string
           created_by_user_id: string | null
           id: number
@@ -151,6 +156,8 @@ export type Database = {
           total_amount: number
         }
         Insert: {
+          client_request_hash?: string | null
+          client_request_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           id?: number
@@ -158,6 +165,8 @@ export type Database = {
           total_amount?: number
         }
         Update: {
+          client_request_hash?: string | null
+          client_request_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           id?: number
@@ -173,6 +182,7 @@ export type Database = {
     Functions: {
       record_sale: {
         Args: {
+          p_client_request_id?: string
           p_items: Json
           p_recorded_by: string
         }

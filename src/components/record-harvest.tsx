@@ -3,6 +3,7 @@ import { ShoppingBasket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { toast } from "sonner";
 import { RecordHarvestDialog } from "@/components/record-harvest-dialog";
+import { queueHarvestRecord } from "@/lib/offline-sync";
 import type { HarvestRecordDraft } from "@/lib/harvest-data";
 
 export function RecordHarvest() {
@@ -15,27 +16,17 @@ export function RecordHarvest() {
     setErrorMessage(null);
 
     try {
-      const savePromise = (async () => {
-        const { supabase } = await import("@/lib/supabase/client");
-        const { error } = await supabase.from("harvest_records").insert({
-          crop_id: 1,
-          quantity: record.quantity,
-          harvest_date: record.harvest_date,
-          harvest_period: record.harvest_period,
-          recorded_by: record.recorded_by,
-        });
-
-        if (error) throw error;
-      })();
+      const savePromise = queueHarvestRecord(record);
       toast.promise(savePromise, {
-        loading: "Saving harvest record",
+        loading: "Saving harvest record on this device",
         success: {
-          message: "Harvest recorded",
-          description: "The harvest record was saved successfully.",
+          message: "Harvest saved on this device",
+          description:
+            "It will sync automatically when a connection is available.",
         },
         error: {
           message: "Unable to save harvest",
-          description: "Please check your connection and try again.",
+          description: "Please try again. Your record has not been queued.",
         },
       });
       await savePromise;

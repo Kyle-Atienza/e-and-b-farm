@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   Cancel01Icon,
   CheckmarkCircle02Icon,
-  ShoppingBasket01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { toast } from "sonner";
@@ -16,7 +15,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -24,10 +22,11 @@ import {
 } from "@/components/ui/drawer";
 import {
   OYSTER_MUSHROOM_SALE_OPTIONS,
-  toSaleItemInsertValues,
   type SaleDraft,
   type SaleItemDraft,
 } from "@/lib/sales-data";
+import { cacheProduct, getCachedProduct } from "@/lib/offline";
+import { queueSaleRecord } from "@/lib/offline-sync";
 import type { Tables } from "@/lib/supabase/database.types";
 
 type OysterMushroomProduct = Pick<
@@ -78,40 +77,68 @@ function SalesRoute() {
 
       try {
         const productPromise = (async () => {
-          const { supabase } = await import("@/lib/supabase/client");
-          const { data: productData, error } = await supabase
-            .from("products")
-            .select("id, name, default_price, unit, is_active")
-            .eq("id", 1)
-            .maybeSingle();
+          try {
+            const { supabase } = await import("@/lib/supabase/client");
+            const { data: productData, error } = await supabase
+              .from("products")
+              .select("id, name, default_price, unit, is_active")
+              .eq("id", 1)
+              .maybeSingle();
 
-          if (error) throw error;
-          if (!productData)
-            throw new Error("Oyster Mushroom product (id: 1) not found.");
-          if (productData.is_active === false) {
-            throw new Error("Oyster Mushroom product (id: 1) is inactive.");
-          }
-          if (
-            !Number.isFinite(productData.default_price) ||
-            productData.default_price <= 0
-          ) {
-            throw new Error(
-              "Oyster Mushroom product has an invalid default price.",
-            );
-          }
+            if (error) throw error;
+            if (!productData)
+              throw new Error("Oyster Mushroom product (id: 1) not found.");
+            if (productData.is_active === false) {
+              throw new Error("Oyster Mushroom product (id: 1) is inactive.");
+            }
+            if (
+              !Number.isFinite(productData.default_price) ||
+              productData.default_price <= 0
+            ) {
+              throw new Error(
+                "Oyster Mushroom product has an invalid default price.",
+              );
+            }
 
-          return productData;
+            try {
+              await cacheProduct(productData);
+            } catch (cacheError) {
+              console.error(
+                "Unable to cache Oyster Mushroom pricing:",
+                cacheError,
+              );
+            }
+
+            return { product: productData, isCached: false };
+          } catch (error) {
+            if (navigator.onLine && !(error instanceof TypeError)) throw error;
+
+            const cachedProduct = await getCachedProduct(1);
+            if (!cachedProduct) throw error;
+            if (cachedProduct.is_active === false) {
+              throw new Error("Cached Oyster Mushroom product is inactive.");
+            }
+            if (
+              !Number.isFinite(cachedProduct.default_price) ||
+              cachedProduct.default_price <= 0
+            ) {
+              throw new Error("Cached Oyster Mushroom price is invalid.");
+            }
+
+            return { product: cachedProduct, isCached: true };
+          }
         })();
         toast.promise(productPromise, {
           loading: "Loading sales options",
-          success: {
-            message: "Sales options ready",
-          },
+          success: (result) =>
+            result.isCached
+              ? { message: "Using saved sales pricing" }
+              : { message: "Sales options ready" },
           error: {
             message: "Unable to load sales options",
           },
         });
-        const data = await productPromise;
+        const { product: data } = await productPromise;
 
         if (isCurrent) setProduct(data);
       } catch (error) {
@@ -269,36 +296,27 @@ function SalesRoute() {
 
     setIsSaving(true);
     try {
-      const salePromise = (async () => {
-        const { supabase } = await import("@/lib/supabase/client");
-        const { data, error } = await supabase.rpc("record_sale", {
-          p_recorded_by: trimmedRecordedBy,
-          p_items: items.map((item) => ({
-            product_id: product.id,
-            ...toSaleItemInsertValues(item),
-          })),
-        });
-
-        if (error) throw error;
-        if (!Number.isFinite(data) || data <= 0) {
-          throw new Error("The sale RPC returned an invalid sale ID.");
-        }
-
-        return data;
-      })();
+      const salePromise = queueSaleRecord({
+        recordedBy: trimmedRecordedBy,
+        productId: product.id,
+        items,
+      });
       toast.promise(salePromise, {
-        loading: "Saving sale",
+        loading: "Saving sale on this device",
         success: {
-          message: "Sale recorded",
+          message: "Sale saved on this device",
+          description:
+            "It will sync automatically when a connection is available.",
         },
         error: {
           message: "Unable to save sale",
+          description: "Please try again. Your sale has not been queued.",
         },
       });
-      const saleId = await salePromise;
+      await salePromise;
 
       setReceipt({
-        id: saleId,
+        id: null,
         recordedBy: trimmedRecordedBy,
         recordedAt: currentTimestamp(),
         items,
@@ -646,12 +664,12 @@ function SalesRoute() {
                 id="sale-confirmed-heading"
                 className="mt-2 text-2xl font-bold text-primary"
               >
-                Sale recorded
+                Sale saved
               </h2>
               <p className="mt-1 text-base text-muted-foreground">
                 {receipt.items.length}{" "}
                 {receipt.items.length === 1 ? "item" : "items"} saved
-                successfully
+                on this device and queued to sync.
               </p>
             </div>
             <dl className="mt-5 space-y-2 rounded-2xl bg-background p-4 text-sm">

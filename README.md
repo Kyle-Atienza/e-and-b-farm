@@ -30,3 +30,22 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Offline support
+
+Harvest and sales records are saved in the browser's local IndexedDB queue and
+sync automatically when connectivity returns. Queue entries are associated
+with the account that created them; sign in with that account to sync them.
+Sales can be recorded offline after the product and its price have been loaded
+while online. The app shell is cached as a PWA after the first online visit.
+
+Apply the database migration before deploying the client so the server can
+deduplicate retried records:
+
+```sh
+npx supabase db push
+```
+
+Records that have not synced are stored only in that browser's local storage.
+Clearing browser data or using a different device removes access to those
+unsynced records.

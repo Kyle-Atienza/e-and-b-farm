@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#315f3b"/>
+  <path d="M256 84 96 205v213h320V205L256 84Z" fill="#f3eee3"/>
+  <path d="M256 84 96 205h320L256 84Z" fill="#82a96f"/>
+  <path d="M192 418V270h128v148" fill="#315f3b"/>
+  <path d="M224 418V302h64v116" fill="#f3eee3"/>
+  <text x="256" y="252" fill="#315f3b" font-family="sans-serif" font-size="54" font-weight="700" text-anchor="middle">E&amp;B</text>
+</svg>

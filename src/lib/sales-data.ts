@@ -1,4 +1,4 @@
-import type { Tables, TablesInsert } from "@/lib/supabase/database.types";
+import type { Tables } from "@/lib/supabase/database.types";
 
 export type SaleItemDraft = {
   id: string;
@@ -13,7 +13,7 @@ export type SaleItemDraft = {
 };
 
 export type SaleDraft = {
-  id: number;
+  id: number | null;
   recordedBy: string;
   recordedAt: string;
   items: SaleItemDraft[];
@@ -22,7 +22,7 @@ export type SaleDraft = {
 
 export function toSaleItemInsertValues(
   item: SaleItemDraft,
-): Pick<TablesInsert<"sale_item">, "quantity" | "subtotal"> {
+): { quantity: number; subtotal: number } {
   return {
     quantity: item.productQuantityPerOption * item.optionCount,
     subtotal: item.subtotal,

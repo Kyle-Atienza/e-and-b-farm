@@ -3,6 +3,10 @@ import { Notification01Icon } from "@hugeicons/core-free-icons";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import {
+  syncPendingRecords,
+  useOfflineSyncStatus,
+} from "@/lib/offline-sync";
 
 type HeaderProps = {
   showTitle?: boolean;
@@ -10,6 +14,18 @@ type HeaderProps = {
 
 export function Header({ showTitle = false }: HeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const syncStatus = useOfflineSyncStatus();
+  const hasQueuedRecords =
+    syncStatus.pendingCount > 0 || syncStatus.needsAttentionCount > 0;
+  const syncLabel = syncStatus.isSyncing
+    ? "Syncing..."
+    : !syncStatus.isOnline
+      ? "Offline"
+      : syncStatus.needsAttentionCount > 0
+        ? `${syncStatus.needsAttentionCount} need attention`
+        : syncStatus.pendingCount > 0
+          ? `${syncStatus.pendingCount} pending`
+          : "Online";
 
   return (
     <header className="bg-primary text-primary-foreground sticky top-0">
@@ -22,13 +38,37 @@ export function Header({ showTitle = false }: HeaderProps) {
           >
             E&amp;B
           </Link>
-          {/* {showTitle && (
+          {showTitle && (
             <h1 className="truncate text-lg font-medium sm:text-xl">
               Oyster Mushrooms Record
             </h1>
-          )} */}
+          )}
         </div>
         <div className="flex items-center gap-3 sm:gap-5">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={
+              !syncStatus.isOnline ||
+              syncStatus.isSyncing ||
+              !hasQueuedRecords
+            }
+            aria-label={`Sync status: ${syncLabel}`}
+            title={
+              syncStatus.needsAttentionCount > 0
+                ? "Check sign-in and retry syncing saved records."
+                : "Saved records sync automatically when online."
+            }
+            onClick={() => void syncPendingRecords(true)}
+            className="gap-2 px-2 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground disabled:opacity-90 sm:px-3"
+          >
+            <span
+              aria-hidden="true"
+              data-online={syncStatus.isOnline}
+              className="size-2 rounded-full bg-secondary data-[online=false]:bg-destructive"
+            />
+            <span className="text-xs font-medium sm:text-sm">{syncLabel}</span>
+          </Button>
           <div className="relative">
             <Button
               variant="ghost"
