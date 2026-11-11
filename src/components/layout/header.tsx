@@ -1,19 +1,27 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Notification01Icon } from "@hugeicons/core-free-icons";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
-  syncPendingRecords,
-  useOfflineSyncStatus,
-} from "@/lib/offline-sync";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { clearLastAuthenticatedUserId } from "@/lib/offline";
+import { syncPendingRecords, useOfflineSyncStatus } from "@/lib/offline-sync";
+import logo from "@/assets/logo.png";
+import { Breadcrumbs } from "./breadcrumbs";
+import { Badge } from "../ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-type HeaderProps = {
-  showTitle?: boolean;
-};
-
-export function Header({ showTitle = false }: HeaderProps) {
+export function Header() {
+  const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const syncStatus = useOfflineSyncStatus();
   const hasQueuedRecords =
     syncStatus.pendingCount > 0 || syncStatus.needsAttentionCount > 0;
@@ -27,6 +35,47 @@ export function Header({ showTitle = false }: HeaderProps) {
           ? `${syncStatus.pendingCount} pending`
           : "Online";
 
+  async function handleSignOut() {
+    setIsSigningOut(true);
+
+    try {
+      const { supabase } = await import("@/lib/supabase/client");
+      const { error: signOutError } = await supabase.auth.signOut({
+        scope: "local",
+      });
+
+      let cacheError: unknown;
+      try {
+        await clearLastAuthenticatedUserId();
+      } catch (error) {
+        cacheError = error;
+        console.error("Unable to clear the cached authenticated user:", error);
+      }
+
+      await navigate({ to: "/login", replace: true });
+
+      if (cacheError) {
+        toast.error("Signed out, but offline access could not be cleared");
+      } else if (signOutError) {
+        console.error(
+          "Unable to revoke the server refresh token:",
+          signOutError,
+        );
+        toast.warning("Signed out on this device", {
+          description:
+            "The server could not revoke this session. It may remain active until it expires.",
+        });
+      } else {
+        toast.success("You have been signed out");
+      }
+    } catch (error) {
+      console.error("Unable to sign out:", error);
+      toast.error("Unable to sign out. Please try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
   return (
     <header className="bg-primary text-primary-foreground sticky top-0">
       <div className="flex h-[72px] items-center justify-between px-5 sm:px-8">
@@ -36,39 +85,47 @@ export function Header({ showTitle = false }: HeaderProps) {
             className="shrink-0 rounded-sm text-[25px] leading-none font-bold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"
             aria-label="E and B Farm home"
           >
-            E&amp;B
+            <img className="w-[72px]" src={logo} alt="" />
           </Link>
-          {showTitle && (
-            <h1 className="truncate text-lg font-medium sm:text-xl">
-              Oyster Mushrooms Record
-            </h1>
-          )}
+          <Breadcrumbs />
         </div>
         <div className="flex items-center gap-3 sm:gap-5">
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={
-              !syncStatus.isOnline ||
-              syncStatus.isSyncing ||
-              !hasQueuedRecords
-            }
-            aria-label={`Sync status: ${syncLabel}`}
-            title={
-              syncStatus.needsAttentionCount > 0
-                ? "Check sign-in and retry syncing saved records."
-                : "Saved records sync automatically when online."
-            }
-            onClick={() => void syncPendingRecords(true)}
-            className="gap-2 px-2 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground disabled:opacity-90 sm:px-3"
-          >
-            <span
-              aria-hidden="true"
-              data-online={syncStatus.isOnline}
-              className="size-2 rounded-full bg-secondary data-[online=false]:bg-destructive"
-            />
-            <span className="text-xs font-medium sm:text-sm">{syncLabel}</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge
+                variant="default"
+                title={
+                  syncStatus.needsAttentionCount > 0
+                    ? "Check sign-in and retry syncing saved records."
+                    : "Saved records sync automatically when online."
+                }
+                className="gap-2 py-3 text-primary-foreground bg-primary-foreground/20 hover:text-primary-foreground disabled:opacity-90 sm:px-3"
+              >
+                <span
+                  aria-hidden="true"
+                  data-online={syncStatus.isOnline}
+                  className="size-2 rounded-full bg-secondary data-[online=false]:bg-destructive"
+                />
+                <span className="text-xs font-medium sm:text-sm">
+                  {syncLabel}
+                </span>
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <Button
+                disabled={
+                  !syncStatus.isOnline ||
+                  syncStatus.isSyncing ||
+                  !hasQueuedRecords
+                }
+                aria-label={`Sync status: ${syncLabel}`}
+                onClick={() => void syncPendingRecords(true)}
+              >
+                Sync offline records
+              </Button>
+            </TooltipContent>
+          </Tooltip>
+
           <div className="relative">
             <Button
               variant="ghost"
@@ -91,13 +148,31 @@ export function Header({ showTitle = false }: HeaderProps) {
               </div>
             )}
           </div>
-          <Link
-            to="/login"
-            className="grid size-10 place-items-center rounded-full bg-background text-sm font-semibold text-primary transition-colors hover:bg-background/80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-foreground/50 sm:size-11"
-            aria-label="Account: E and B"
-          >
-            EB
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="size-10 rounded-full bg-background text-sm font-semibold text-primary hover:bg-background/80 hover:text-primary focus-visible:ring-[3px] focus-visible:ring-primary-foreground/50 sm:size-11"
+                  aria-label="Account menu"
+                />
+              }
+            >
+              EB
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-40">
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  variant="destructive"
+                  disabled={isSigningOut}
+                  onClick={() => void handleSignOut()}
+                >
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

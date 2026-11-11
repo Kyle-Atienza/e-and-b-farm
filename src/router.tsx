@@ -47,24 +47,36 @@ const rootRoute = createRootRoute({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
+  staticData: {
+    breadcrumb: "Home",
+  },
   component: HomeRoute,
 });
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
+  staticData: {
+    breadcrumb: "Login",
+  },
   component: LoginRoute,
 });
 
 const signupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/signup",
+  staticData: {
+    breadcrumb: "Sign Up",
+  },
   component: SignupRoute,
 });
 
 const salesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sales",
+  staticData: {
+    breadcrumb: "Sales",
+  },
   component: SalesRoute,
 });
 
@@ -80,5 +92,11 @@ export const router = createRouter({ routeTree });
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
+  }
+}
+
+declare module "@tanstack/router-core" {
+  interface StaticDataRouteOption {
+    breadcrumb?: string;
   }
 }

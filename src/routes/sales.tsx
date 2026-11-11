@@ -128,7 +128,7 @@ function SalesRoute() {
             return { product: cachedProduct, isCached: true };
           }
         })();
-        toast.promise(productPromise, {
+        /* toast.promise(productPromise, {
           loading: "Loading sales options",
           success: (result) =>
             result.isCached
@@ -137,7 +137,7 @@ function SalesRoute() {
           error: {
             message: "Unable to load sales options",
           },
-        });
+        }); */
         const { product: data } = await productPromise;
 
         if (isCurrent) setProduct(data);
@@ -668,8 +668,8 @@ function SalesRoute() {
               </h2>
               <p className="mt-1 text-base text-muted-foreground">
                 {receipt.items.length}{" "}
-                {receipt.items.length === 1 ? "item" : "items"} saved
-                on this device and queued to sync.
+                {receipt.items.length === 1 ? "item" : "items"} saved on this
+                device and queued to sync.
               </p>
             </div>
             <dl className="mt-5 space-y-2 rounded-2xl bg-background p-4 text-sm">
