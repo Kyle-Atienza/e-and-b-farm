@@ -1,7 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/sidebar";
+// import { AppSidebar } from "@/components/layout/sidebar";
 
 function AppLayout() {
   return (

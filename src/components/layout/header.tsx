@@ -1,6 +1,4 @@
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Menu01Icon, Notification01Icon } from "@hugeicons/core-free-icons";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,17 +11,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { clearLastAuthenticatedUserId } from "@/lib/offline";
 import { syncPendingRecords, useOfflineSyncStatus } from "@/lib/offline-sync";
-import logo from "@/assets/logo.png";
 import { Breadcrumbs } from "./breadcrumbs";
 import { Badge } from "../ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { useSidebar } from "../ui/sidebar";
 
 export function Header() {
   const navigate = useNavigate();
-  const { toggleSidebar } = useSidebar();
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const syncStatus = useOfflineSyncStatus();
   const hasQueuedRecords =
