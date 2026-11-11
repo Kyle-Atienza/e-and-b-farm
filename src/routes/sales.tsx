@@ -6,7 +6,6 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { Header } from "@/components/layout/header";
 import { RecordedByField } from "@/components/recorded-by-field";
 import { OptionItem } from "@/components/sales/option-item";
 import { SaleItem } from "@/components/sales/sale-item";
@@ -381,8 +380,7 @@ function SalesRoute() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
+    <>
       <main className="grid min-h-[calc(100dvh-72px)] gap-6 px-5 py-6 grid-rows-[1fr_auto] lg:grid-rows-[1fr] lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-7">
         <section
           className="flex min-h-[560px] flex-col min-w-1"
@@ -731,7 +729,7 @@ function SalesRoute() {
           </section>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

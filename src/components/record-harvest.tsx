@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { RecordHarvestDialog } from "@/components/record-harvest-dialog";
 import { queueHarvestRecord } from "@/lib/offline-sync";
 import type { HarvestRecordDraft } from "@/lib/harvest-data";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 
 export function RecordHarvest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +52,7 @@ export function RecordHarvest() {
 
   return (
     <>
-      <button
+      {/* <button
         type="button"
         onClick={() => {
           setErrorMessage(null);
@@ -68,7 +70,34 @@ export function RecordHarvest() {
           <br />
           Harvest
         </span>
-      </button>
+      </button> */}
+      <Button
+        className="flex-1 flex flex-col w-full rounded-lg h-full gap-4"
+        size={"icon-lg"}
+        variant="outline"
+        onClick={() => {
+          setErrorMessage(null);
+          setIsOpen(true);
+        }}
+      >
+        <span className="flex flex-col gap-2 items-center">
+          <HugeiconsIcon
+            icon={ShoppingBasket01Icon}
+            size={58}
+            className="size-10"
+            strokeWidth={2}
+          />
+          <span className="text-start text-4xl font-semibold tracking-tight sm:text-5xl">
+            Record
+            <br />
+            Harvest
+          </span>
+        </span>
+        <div className="flex flex-col gap-2">
+          <Badge variant="outline">Today's Harvest</Badge>
+          <p className=" text-2xl font-semibold">0 kg</p>
+        </div>
+      </Button>
       <RecordHarvestDialog
         open={isOpen}
         isSubmitting={isSubmitting}

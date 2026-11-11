@@ -9,6 +9,7 @@ import {
   getLastAuthenticatedUserId,
   saveLastAuthenticatedUserId,
 } from "@/lib/offline";
+import AppLayout from "@/app/layout";
 import HomeRoute from "@/routes/home";
 import LoginRoute from "@/routes/login";
 import SalesRoute from "@/routes/sales";
@@ -44,8 +45,14 @@ const rootRoute = createRootRoute({
   },
 });
 
-const homeRoute = createRoute({
+const appLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: "_app",
+  component: AppLayout,
+});
+
+const homeRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
   path: "/",
   staticData: {
     breadcrumb: "Home",
@@ -72,7 +79,7 @@ const signupRoute = createRoute({
 });
 
 const salesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/sales",
   staticData: {
     breadcrumb: "Sales",
@@ -81,8 +88,7 @@ const salesRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  homeRoute,
-  salesRoute,
+  appLayoutRoute.addChildren([homeRoute, salesRoute]),
   loginRoute,
   signupRoute,
 ]);

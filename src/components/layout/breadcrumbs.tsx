@@ -24,7 +24,7 @@ export function Breadcrumbs() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink className="text-background text-lg">
+          <BreadcrumbLink className="text-background" href="/">
             Home
           </BreadcrumbLink>
         </BreadcrumbItem>
@@ -38,7 +38,7 @@ export function Breadcrumbs() {
 
                 <BreadcrumbItem>
                   {isLast ? (
-                    <BreadcrumbPage className="text-background text-lg">
+                    <BreadcrumbPage className="text-background">
                       {label}
                     </BreadcrumbPage>
                   ) : (

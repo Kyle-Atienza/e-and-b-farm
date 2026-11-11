@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Notification01Icon } from "@hugeicons/core-free-icons";
+import { Menu01Icon, Notification01Icon } from "@hugeicons/core-free-icons";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -17,9 +17,12 @@ import logo from "@/assets/logo.png";
 import { Breadcrumbs } from "./breadcrumbs";
 import { Badge } from "../ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useSidebar } from "../ui/sidebar";
 
 export function Header() {
   const navigate = useNavigate();
+  const { toggleSidebar } = useSidebar();
+
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const syncStatus = useOfflineSyncStatus();
@@ -78,18 +81,14 @@ export function Header() {
 
   return (
     <header className="bg-primary text-primary-foreground sticky top-0">
-      <div className="flex h-[72px] items-center justify-between px-5 sm:px-8">
-        <div className="flex min-w-0 items-center gap-4">
-          <Link
-            to="/"
-            className="shrink-0 rounded-sm text-[25px] leading-none font-bold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"
-            aria-label="E and B Farm home"
-          >
-            <img className="w-[72px]" src={logo} alt="" />
-          </Link>
+      <div className="flex py-2 items-center justify-between px-5">
+        <div className="flex min-w-0 items-center gap-2">
+          {/* <Button variant="ghost" size="icon-sm" onClick={toggleSidebar}>
+            <HugeiconsIcon icon={Menu01Icon} size={24} className="size-4" />
+          </Button> */}
           <Breadcrumbs />
         </div>
-        <div className="flex items-center gap-3 sm:gap-5">
+        <div className="flex items-center gap-2 sm:gap-5">
           <Tooltip>
             <TooltipTrigger>
               <Badge
@@ -99,16 +98,14 @@ export function Header() {
                     ? "Check sign-in and retry syncing saved records."
                     : "Saved records sync automatically when online."
                 }
-                className="gap-2 py-3 text-primary-foreground bg-primary-foreground/20 hover:text-primary-foreground disabled:opacity-90 sm:px-3"
+                className="gap-1 text-primary-foreground bg-primary-foreground/20 hover:text-primary-foreground disabled:opacity-90"
               >
                 <span
                   aria-hidden="true"
                   data-online={syncStatus.isOnline}
-                  className="size-2 rounded-full bg-secondary data-[online=false]:bg-destructive"
+                  className="size-1.5 rounded-full bg-secondary data-[online=false]:bg-destructive"
                 />
-                <span className="text-xs font-medium sm:text-sm">
-                  {syncLabel}
-                </span>
+                <span className="text-xs font-medium">{syncLabel}</span>
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
@@ -126,7 +123,7 @@ export function Header() {
             </TooltipContent>
           </Tooltip>
 
-          <div className="relative">
+          {/* <div className="relative">
             <Button
               variant="ghost"
               size="icon-lg"
@@ -147,14 +144,14 @@ export function Header() {
                 <p className="mt-1 text-muted-foreground">No new updates.</p>
               </div>
             )}
-          </div>
+          </div> */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
                 <Button
                   type="button"
                   variant="ghost"
-                  className="size-10 rounded-full bg-background text-sm font-semibold text-primary hover:bg-background/80 hover:text-primary focus-visible:ring-[3px] focus-visible:ring-primary-foreground/50 sm:size-11"
+                  className="size-8 rounded-full bg-background text-sm font-semibold text-primary hover:bg-background/80 hover:text-primary focus-visible:ring-[3px] focus-visible:ring-primary-foreground/50"
                   aria-label="Account menu"
                 />
               }
