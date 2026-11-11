@@ -9,7 +9,7 @@ function HomeRoute() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <Header showTitle />
+      <Header />
       <main className="grid min-h-[calc(100dvh-72px)] grid-cols-1 sm:grid-cols-2">
         <RecordHarvest />
         <button
