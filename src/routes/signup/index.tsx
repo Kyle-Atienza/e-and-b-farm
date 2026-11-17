@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -92,4 +93,9 @@ function SignupRoute() {
   );
 }
 
-export default SignupRoute;
+export const Route = createFileRoute("/signup/")({
+  staticData: {
+    breadcrumb: "Sign Up",
+  },
+  component: SignupRoute,
+});

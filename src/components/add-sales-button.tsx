@@ -88,7 +88,7 @@ export function AddSalesButton() {
     <Button
       className="flex-1 flex flex-col w-full rounded-lg h-full gap-4"
       size={"icon-lg"}
-      onClick={() => navigate({ to: "/sales" })}
+      onClick={() => navigate({ to: "/add-sales" })}
     >
       <span className="flex flex-col gap-2 items-center">
         <HugeiconsIcon

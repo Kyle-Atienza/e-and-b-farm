@@ -24,7 +24,7 @@ export function Breadcrumbs() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink className="text-background" href="/">
+          <BreadcrumbLink className="text-background" render={<Link to="/" />}>
             Home
           </BreadcrumbLink>
         </BreadcrumbItem>

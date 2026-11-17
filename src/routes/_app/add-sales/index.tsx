@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Cancel01Icon,
@@ -46,7 +47,7 @@ const formatQuantity = (quantity: number) =>
 
 const currentTimestamp = () => new Date().toISOString();
 
-function SalesRoute() {
+function AddSalesRoute() {
   const navigate = useNavigate();
   const [product, setProduct] = useState<OysterMushroomProduct | null>(null);
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
@@ -733,4 +734,9 @@ function SalesRoute() {
   );
 }
 
-export default SalesRoute;
+export const Route = createFileRoute("/_app/add-sales/")({
+  staticData: {
+    breadcrumb: "Add Sales",
+  },
+  component: AddSalesRoute,
+});

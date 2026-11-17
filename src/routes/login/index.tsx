@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -260,4 +261,9 @@ function LoginRoute() {
   );
 }
 
-export default LoginRoute;
+export const Route = createFileRoute("/login/")({
+  staticData: {
+    breadcrumb: "Login",
+  },
+  component: LoginRoute,
+});

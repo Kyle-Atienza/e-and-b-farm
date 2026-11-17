@@ -207,6 +207,35 @@ async function syncEntry(
   }
 }
 
+async function claimPendingEntry(
+  entryId: string,
+  userId: string,
+): Promise<OfflineQueueEntry | null> {
+  return offlineDb.transaction("rw", offlineDb.syncQueue, async () => {
+    const entry = await offlineDb.syncQueue.get(entryId);
+    if (
+      !entry ||
+      entry.userId !== userId ||
+      entry.status !== "pending"
+    ) {
+      return null;
+    }
+
+    const claimedEntry: OfflineQueueEntry = {
+      ...entry,
+      status: "syncing",
+      attempts: entry.attempts + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    await offlineDb.syncQueue.update(entry.id, {
+      status: claimedEntry.status,
+      attempts: claimedEntry.attempts,
+      updatedAt: claimedEntry.updatedAt,
+    });
+    return claimedEntry;
+  });
+}
+
 export function syncPendingRecords(retryAttention = false): Promise<void> {
   if (activeSync) return activeSync;
 
@@ -275,16 +304,13 @@ export function syncPendingRecords(retryAttention = false): Promise<void> {
       for (const entry of pendingEntries) {
         if (!navigator.onLine) break;
 
-        await offlineDb.syncQueue.update(entry.id, {
-          status: "syncing",
-          attempts: entry.attempts + 1,
-          updatedAt: new Date().toISOString(),
-        });
+        const claimedEntry = await claimPendingEntry(entry.id, session.user.id);
+        if (!claimedEntry) continue;
         await refreshStatus();
 
         try {
-          await syncEntry(entry, supabase);
-          await offlineDb.syncQueue.update(entry.id, {
+          await syncEntry(claimedEntry, supabase);
+          await offlineDb.syncQueue.update(claimedEntry.id, {
             status: "synced",
             lastError: undefined,
             updatedAt: new Date().toISOString(),
@@ -292,7 +318,7 @@ export function syncPendingRecords(retryAttention = false): Promise<void> {
           syncedCount += 1;
         } catch (error) {
           const details = getErrorDetails(error);
-          await offlineDb.syncQueue.update(entry.id, {
+          await offlineDb.syncQueue.update(claimedEntry.id, {
             status: details.permanent ? "needs_attention" : "pending",
             lastError: details.message,
             updatedAt: new Date().toISOString(),

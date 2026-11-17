@@ -14,9 +14,13 @@ import { syncPendingRecords, useOfflineSyncStatus } from "@/lib/offline-sync";
 import { Breadcrumbs } from "./breadcrumbs";
 import { Badge } from "../ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Menu01Icon } from "@hugeicons/core-free-icons";
+import { useSidebar } from "../ui/sidebar";
 
 export function Header() {
   const navigate = useNavigate();
+  const { toggleSidebar } = useSidebar();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const syncStatus = useOfflineSyncStatus();
@@ -77,9 +81,9 @@ export function Header() {
     <header className="bg-primary text-primary-foreground sticky top-0">
       <div className="flex py-2 items-center justify-between px-5">
         <div className="flex min-w-0 items-center gap-2">
-          {/* <Button variant="ghost" size="icon-sm" onClick={toggleSidebar}>
+          <Button variant="ghost" size="icon-sm" onClick={toggleSidebar}>
             <HugeiconsIcon icon={Menu01Icon} size={24} className="size-4" />
-          </Button> */}
+          </Button>
           <Breadcrumbs />
         </div>
         <div className="flex items-center gap-2 sm:gap-5">

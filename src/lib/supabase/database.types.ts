@@ -150,7 +150,7 @@ export type Database = {
           client_request_hash: string | null
           client_request_id: string | null
           created_at: string
-          created_by_user_id: string | null
+          created_by: string | null
           id: number
           recorded_by: string | null
           total_amount: number
@@ -159,7 +159,7 @@ export type Database = {
           client_request_hash?: string | null
           client_request_id?: string | null
           created_at?: string
-          created_by_user_id?: string | null
+          created_by?: string | null
           id?: number
           recorded_by?: string | null
           total_amount?: number
@@ -168,7 +168,7 @@ export type Database = {
           client_request_hash?: string | null
           client_request_id?: string | null
           created_at?: string
-          created_by_user_id?: string | null
+          created_by?: string | null
           id?: number
           recorded_by?: string | null
           total_amount?: number
