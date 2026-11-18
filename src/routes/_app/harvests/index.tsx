@@ -9,7 +9,11 @@ function RouteComponent() {
       <h1 className="text-2xl">Harvests</h1>
       <div className="flex flex-col gap-4">
         <HarvestBarChart />
-        <HarvestCalendar />
+        <div className="grid md:grid-cols-[repeat(auto-fit,_minmax(400px,_auto))]">
+          <HarvestCalendar />
+          <div></div>
+          <div></div>
+        </div>
       </div>
     </PageContent>
   );

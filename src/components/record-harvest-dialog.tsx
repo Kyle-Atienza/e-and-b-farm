@@ -1,6 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { UserIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { RecordedByField } from "@/components/recorded-by-field";
 import { Button } from "@/components/ui/button";
 import type { HarvestPeriod, HarvestRecordDraft } from "@/lib/harvest-data";
@@ -12,8 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Field, FieldLabel } from "./ui/field";
+import { Field, FieldLabel, FieldLegend, FieldSet } from "./ui/field";
 import { Input } from "./ui/input";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 type RecordHarvestDialogProps = {
   open: boolean;
@@ -22,9 +21,6 @@ type RecordHarvestDialogProps = {
   onClose: () => void;
   onRecord: (record: HarvestRecordDraft) => Promise<boolean>;
 };
-
-const fieldClassName =
-  "h-[52px] w-full rounded-2xl border border-primary bg-card pl-12 pr-4 text-base text-primary outline-none placeholder:text-primary/50 focus-visible:ring-[3px] focus-visible:ring-primary/25";
 
 export function RecordHarvestDialog({
   open,
@@ -74,75 +70,71 @@ export function RecordHarvestDialog({
           Enter the harvest details below and submit the record.
         </DialogDescription>
       </DialogHeader>
-      <form onSubmit={handleSubmit}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="harvest-date">Date</FieldLabel>
-            <Input
-              id="harvest-date"
-              required
-              type="date"
-              value={harvestDate}
-              onChange={(event) => setHarvestDate(event.target.value)}
-              aria-label="Harvest date"
-              disabled={isSubmitting}
-            />
-          </Field>
-          <RecordedByField
-            value={recordedBy}
-            onChange={setRecordedBy}
-            placeholder="Enter recorder name"
+      <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
+        <Field>
+          <FieldLabel htmlFor="harvest-date">Date</FieldLabel>
+          <Input
+            id="harvest-date"
+            required
+            type="date"
+            value={harvestDate}
+            onChange={(event) => setHarvestDate(event.target.value)}
+            aria-label="Harvest date"
             disabled={isSubmitting}
           />
-        </div>
-        <fieldset className="block text-sm font-medium text-primary">
-          <legend>Harvest Period</legend>
-          <div
-            role="radiogroup"
-            aria-label="Harvest period"
-            className="mt-2 grid grid-cols-3 gap-2"
+        </Field>
+        <RecordedByField
+          value={recordedBy}
+          onChange={setRecordedBy}
+          placeholder="Enter recorder name"
+          disabled={isSubmitting}
+        />
+        <FieldSet>
+          <FieldLegend variant="label">Harvest Period</FieldLegend>
+          <RadioGroup
+            required
+            value={harvestPeriod || null}
+            onValueChange={(value) => {
+              const selectedOption = HARVEST_PERIOD_OPTIONS.find(
+                (option) => option.value === value,
+              );
+              if (selectedOption) setHarvestPeriod(selectedOption.value);
+            }}
+            className="gap-1"
+            disabled={isSubmitting}
           >
             {HARVEST_PERIOD_OPTIONS.map((option) => (
-              <label key={option.value} className="cursor-pointer">
-                <input
-                  required
-                  type="radio"
-                  name="harvest-period"
+              <Field
+                key={option.value}
+                orientation="horizontal"
+                className="items-center gap-2"
+              >
+                <RadioGroupItem
                   value={option.value}
-                  checked={harvestPeriod === option.value}
-                  onChange={() => setHarvestPeriod(option.value)}
+                  id={`harvest-period-${option.value.toLowerCase()}`}
                   disabled={isSubmitting}
-                  className="peer sr-only"
                 />
-                <span className="flex h-[48px] items-center justify-center rounded-full border border-primary/40 bg-card px-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary/30">
+                <FieldLabel
+                  htmlFor={`harvest-period-${option.value.toLowerCase()}`}
+                >
                   {option.label}
-                </span>
-              </label>
+                </FieldLabel>
+              </Field>
             ))}
-          </div>
-        </fieldset>
-        <label className="block text-sm font-medium text-primary">
-          Weight (kg)
-          <span className="relative mt-2 block">
-            <HugeiconsIcon
-              icon={UserIcon}
-              size={21}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary"
-            />
-            <input
-              required
-              min="0.01"
-              step="0.01"
-              type="number"
-              inputMode="decimal"
-              value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
-              placeholder="Enter harvest quantity"
-              disabled={isSubmitting}
-              className={fieldClassName}
-            />
-          </span>
-        </label>
+          </RadioGroup>
+        </FieldSet>
+        <Field>
+          <FieldLabel>Quantity (Weight in kg)</FieldLabel>
+          <Input
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+            placeholder="Enter harvest quantity"
+            disabled={isSubmitting}
+          />
+        </Field>
         {errorMessage && (
           <p role="alert" className="text-sm font-medium text-destructive">
             {errorMessage}

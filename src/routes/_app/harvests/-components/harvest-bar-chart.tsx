@@ -1,3 +1,10 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { offlineDb } from "@/lib/offline";
 import { useOfflineSyncStatus } from "@/lib/offline-sync";
 import { Suspense, useEffect, useState } from "react";
@@ -150,90 +157,89 @@ export default function HarvestBarChart() {
   ]);
 
   return (
-    <section
-      className="rounded-xl border bg-card p-5 shadow-sm sm:p-7"
-      aria-labelledby="harvest-chart-title"
-    >
-      <div className="mb-5">
-        <h2 id="harvest-chart-title" className="text-lg font-semibold">
-          Daily Harvest
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Daily Harvest</CardTitle>
+        <CardDescription>
           Harvested quantity over the last 7 days
-        </p>
-      </div>
-
-      {isLoading ? (
-        <p className="py-24 text-center text-sm text-muted-foreground">
-          Loading harvest data...
-        </p>
-      ) : hasLoadFailed ? (
-        <p className="py-24 text-center text-sm text-destructive" role="alert">
-          Unable to load harvest data. Please refresh and try again.
-        </p>
-      ) : (
-        <div
-          className="h-64 w-full sm:h-80"
-          role="img"
-          aria-label="Bar chart showing daily harvest quantity in kilograms for the last 7 days"
-        >
-          <Suspense
-            fallback={
-              <p className="py-24 text-center text-sm text-muted-foreground">
-                Loading chart...
-              </p>
-            }
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="py-24 text-center text-sm text-muted-foreground">
+            Loading harvest data...
+          </p>
+        ) : hasLoadFailed ? (
+          <p
+            className="py-24 text-center text-sm text-destructive"
+            role="alert"
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={harvests}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid
-                  vertical={false}
-                  stroke="var(--border)"
-                  strokeDasharray="4 4"
-                />
-                <XAxis
-                  dataKey="label"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-                  tickMargin={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-                  tickFormatter={(value: number) =>
-                    formatQuantity.format(value)
-                  }
-                  width={48}
-                />
-                <Tooltip
-                  formatter={(value) => [
-                    `${formatQuantity.format(Number(value))} kg`,
-                    "Harvest",
-                  ]}
-                  contentStyle={{
-                    borderRadius: "0.75rem",
-                    borderColor: "var(--border)",
-                    backgroundColor: "var(--card)",
-                    color: "var(--card-foreground)",
-                  }}
-                />
-                <Bar
-                  dataKey="quantity"
-                  name="Harvest"
-                  fill="var(--primary)"
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={56}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </Suspense>
-        </div>
-      )}
-    </section>
+            Unable to load harvest data. Please refresh and try again.
+          </p>
+        ) : (
+          <div
+            className="h-64 w-full sm:h-80"
+            role="img"
+            aria-label="Bar chart showing daily harvest quantity in kilograms for the last 7 days"
+          >
+            <Suspense
+              fallback={
+                <p className="py-24 text-center text-sm text-muted-foreground">
+                  Loading chart...
+                </p>
+              }
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={harvests}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="var(--border)"
+                    strokeDasharray="4 4"
+                  />
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    tickMargin={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    tickFormatter={(value: number) =>
+                      formatQuantity.format(value)
+                    }
+                    width={48}
+                  />
+                  <Tooltip
+                    formatter={(value) => [
+                      `${formatQuantity.format(Number(value))} kg`,
+                      "Harvest",
+                    ]}
+                    contentStyle={{
+                      borderRadius: "0.75rem",
+                      borderColor: "var(--border)",
+                      backgroundColor: "var(--card)",
+                      color: "var(--card-foreground)",
+                    }}
+                  />
+                  <Bar
+                    dataKey="quantity"
+                    name="Harvest"
+                    fill="var(--primary)"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={56}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Suspense>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
