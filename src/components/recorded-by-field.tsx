@@ -32,7 +32,6 @@ export function RecordedByField({
   onChange,
   disabled = false,
   placeholder = "Enter your name",
-  error,
 }: RecordedByFieldProps) {
   return (
     <Field>
