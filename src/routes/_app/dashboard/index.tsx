@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_app/dashboard/")({
       location.pathname === "/dashboard/"
     ) {
       throw redirect({
-        to: "/dashboard/harvests",
+        to: "/harvests",
         replace: true,
       });
     }

@@ -1,10 +1,7 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { addDays, format, isValid, parse } from "date-fns";
+import { format, isValid, parse } from "date-fns";
 import { useEffect, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 
 import {
   Table,
@@ -18,14 +15,7 @@ import { getLastAuthenticatedUserId, offlineDb } from "@/lib/offline";
 import { useOfflineSyncStatus } from "@/lib/offline-sync";
 import { type HarvestPeriod } from "@/lib/harvest-data";
 import PageContent from "@/components/layout/page-content";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePickerButton } from "@/components/date-picker-button";
 import type {
   HarvestRecord,
@@ -58,9 +48,6 @@ function HarvestDateRoute() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const syncStatus = useOfflineSyncStatus();
-  const dateStrip = Array.from({ length: 5 }, (_, index) =>
-    addDays(selectedDate, index - 2),
-  );
   const totalHarvest = records.reduce((prev, curr) => {
     prev += curr.quantity;
     return prev;
@@ -291,66 +278,44 @@ function HarvestDateRoute() {
   return (
     <PageContent className="flex-1">
       <h1 className="text-2xl font-semibold">Harvest Details</h1>
-      <CardHeader className="gap-1">
-        <CardTitle>{format(selectedDate, "MMMM, yyyy")}</CardTitle>
-        <CardDescription className="col-span-full">
-          <div className="flex flex-1 items-center gap-2">
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label="Previous day"
-              onClick={() => navigateToDate(addDays(selectedDate, -1))}
-            >
-              <HugeiconsIcon icon={ChevronLeftIcon} data-icon="inline-start" />
-            </Button>
-            {dateStrip.map((stripDate) => {
-              const isSelected =
-                format(stripDate, "yyyy-MM-dd") === harvestDate;
-
-              return (
-                <Button
-                  key={format(stripDate, "yyyy-MM-dd")}
-                  type="button"
-                  className="aspect-square h-auto min-w-0 flex-1 rounded-md"
-                  variant={isSelected ? "default" : "ghost"}
-                  aria-label={format(stripDate, "EEEE, MMMM d, yyyy")}
-                  aria-current={isSelected ? "date" : undefined}
-                  onClick={() => navigateToDate(stripDate)}
-                >
-                  {format(stripDate, "d")}
-                </Button>
-              );
-            })}
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label="Next day"
-              onClick={() => navigateToDate(addDays(selectedDate, 1))}
-            >
-              <HugeiconsIcon icon={ChevronRightIcon} data-icon="inline-end" />
-            </Button>
-          </div>
-        </CardDescription>
-        <CardAction>
-          <DatePickerButton
-            key={harvestDate}
-            selectedDate={selectedDate}
-            onDateSelect={navigateToDate}
-          />
-        </CardAction>
-      </CardHeader>
+      <div className="flex justify-between items-center">
+        <p>{format(selectedDate, "MMMM dd yyyy")}</p>
+        <DatePickerButton
+          key={harvestDate}
+          selectedDate={selectedDate}
+          onDateSelect={navigateToDate}
+        />
+      </div>
       <Card size="sm" className="gap-2">
         <CardHeader>
           <CardTitle>Total Harvest</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-semibold">
+          <p className="text-5xl font-semibold">
             {formatQuantity.format(totalHarvest)} kg
           </p>
         </CardContent>
       </Card>
+      <div className="grid grid-cols-[repeat(3,_1fr)] gap-4">
+        {periodTabs.map((period) => {
+          return (
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle>
+                  <Badge className={period.badgeClassName}>
+                    <span className="text-ellipsis">{period.label}</span>
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <span className="text-2xl font-semibold text-foreground">
+                  {formatQuantity.format(periodTotals[period.value])} kg
+                </span>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
       <Card className="flex-1" size="sm">
         <CardHeader>
           <CardTitle>Harvest Periods</CardTitle>
@@ -361,19 +326,10 @@ function HarvestDateRoute() {
             onValueChange={handlePeriodChange}
             className="flex flex-1 flex-col gap-4"
           >
-            <TabsList className="grid h-auto! w-full grid-cols-3 gap-3 bg-transparent p-0">
+            <TabsList>
               {periodTabs.map((period) => (
-                <TabsTrigger
-                  key={period.value}
-                  value={period.value}
-                  className="h-auto min-w-0 flex-col items-start gap-3 rounded-md border-background bg-card p-3 text-left transition-all after:hidden data-active:border-border data-active:bg-card data-active:shadow-lg "
-                >
-                  <Badge className={period.badgeClassName}>
-                    {period.label}
-                  </Badge>
-                  <span className="text-xl font-semibold text-foreground">
-                    {formatQuantity.format(periodTotals[period.value])} kg
-                  </span>
+                <TabsTrigger key={period.value} value={period.value}>
+                  {period.label}
                 </TabsTrigger>
               ))}
             </TabsList>

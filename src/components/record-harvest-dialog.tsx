@@ -1,9 +1,5 @@
 import { useState, type FormEvent } from "react";
-import {
-  Calendar01Icon,
-  Cancel01Icon,
-  UserIcon,
-} from "@hugeicons/core-free-icons";
+import { UserIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { RecordedByField } from "@/components/recorded-by-field";
 import { Button } from "@/components/ui/button";
@@ -16,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Field, FieldDescription, FieldLabel } from "./ui/field";
+import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
 
 type RecordHarvestDialogProps = {
@@ -34,7 +30,6 @@ export function RecordHarvestDialog({
   open,
   isSubmitting,
   errorMessage,
-  onClose,
   onRecord,
 }: RecordHarvestDialogProps) {
   const [harvestDate, setHarvestDate] = useState("");

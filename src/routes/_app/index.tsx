@@ -6,7 +6,7 @@ import PageContent from "@/components/layout/page-content";
 function HomeRoute() {
   return (
     <PageContent className="flex-1">
-      <div className="grid lg:grid-cols-[1fr_1fr] gap-3 h-[calc(100%-48px)]">
+      <div className="grid lg:grid-cols-[1fr_1fr] gap-3 flex-1">
         <RecordHarvestButton />
         <AddSalesButton />
       </div>

@@ -78,7 +78,7 @@ export function Header() {
   }
 
   return (
-    <header className="bg-primary text-primary-foreground sticky top-0">
+    <header className="bg-primary text-primary-foreground sticky top-0 z-100">
       <div className="flex py-2 items-center justify-between px-5">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon-sm" onClick={toggleSidebar}>

@@ -22,7 +22,7 @@ function DashboardLayout() {
     if (value === "sales") {
       void navigate({ to: "/dashboard/sales" });
     } else if (value === "harvest") {
-      void navigate({ to: "/dashboard/harvests" });
+      void navigate({ to: "/harvests" });
     }
   }
 

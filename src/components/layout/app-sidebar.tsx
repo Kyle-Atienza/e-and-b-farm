@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/sidebar";
 import {
   CashierIcon,
-  DashboardBrowsingFreeIcons,
   Home07Icon,
   Plant01Icon,
 } from "@hugeicons/core-free-icons";
@@ -52,7 +51,7 @@ export function AppSidebar() {
                 <span>Home</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
+            {/* <SidebarMenuItem>
               <SidebarMenuButton render={<Link to="/" />}>
                 <HugeiconsIcon
                   icon={DashboardBrowsingFreeIcons}
@@ -60,7 +59,7 @@ export function AppSidebar() {
                 />
                 <span>Dashboard</span>
               </SidebarMenuButton>
-            </SidebarMenuItem>
+            </SidebarMenuItem> */}
             <SidebarMenuItem>
               <SidebarMenuButton render={<Link to="/harvests" />}>
                 <HugeiconsIcon icon={Plant01Icon} strokeWidth={2} />
